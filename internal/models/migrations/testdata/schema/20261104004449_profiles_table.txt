@@ -1,0 +1,25 @@
+migration-history	sha256:840e22083809c7ab68798a6f0e38344ecaae0cc49d0e21f2901a76fc0a78d387
+column	profiles.created_at	timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+column	profiles.id	uuid NOT NULL DEFAULT uuidv7()
+column	profiles.picture	bytea
+column	profiles.picture_type	text
+column	profiles.picture_updated_at	timestamp with time zone
+column	profiles.updated_at	timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+column	profiles.user_id	uuid NOT NULL
+column	profiles.username	text
+comment	schema public	standard public schema
+constraint	profiles.profiles_created_at_not_null	NOT NULL created_at
+constraint	profiles.profiles_id_not_null	NOT NULL id
+constraint	profiles.profiles_picture_check	CHECK ((octet_length(picture) <= 262144))
+constraint	profiles.profiles_picture_set_check	CHECK ((((picture IS NULL) = (picture_type IS NULL)) AND ((picture IS NULL) = (picture_updated_at IS NULL))))
+constraint	profiles.profiles_picture_type_check	CHECK ((picture_type = ANY (ARRAY['image/webp'::text, 'image/jpeg'::text])))
+constraint	profiles.profiles_pkey	PRIMARY KEY (id)
+constraint	profiles.profiles_updated_at_not_null	NOT NULL updated_at
+constraint	profiles.profiles_user_id_key	UNIQUE (user_id)
+constraint	profiles.profiles_user_id_not_null	NOT NULL user_id
+constraint	profiles.profiles_username_check	CHECK (((username <> ''::text) AND (octet_length(username) <= 2048)))
+extension	plpgsql	1.0
+index	profiles_pkey	CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+index	profiles_user_id_key	CREATE UNIQUE INDEX profiles_user_id_key ON public.profiles USING btree (user_id)
+relation	profiles	r
+schema	public	pg_database_owner=UC/pg_database_owner,=U/pg_database_owner
