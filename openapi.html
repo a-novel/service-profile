@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Service Template API Reference</title>
+    <title>Service Profile API Reference</title>
     <link
       rel="icon"
       type="image/x-icon"
@@ -17,26 +17,14 @@
     <link href="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.43.5/dist/style.min.css" rel="stylesheet" />
     <!-- Initialize the Scalar API Reference -->
     <script>
-      const settings = {
+      Scalar.createApiReference("#app", {
+        // The URL of the OpenAPI/Swagger document
+        url: "./openapi.yaml",
         proxyUrl: "https://proxy.scalar.com",
         darkMode: true,
         layout: "modern",
         theme: "elysiajs",
-      };
-
-      // publish-docs converts the protos into the gRPC document. It describes Connect-style HTTP
-      // calls, which the gRPC server does not answer, so it offers no test request.
-      Scalar.createApiReference("#app", [
-        { ...settings, title: "REST API", slug: "rest", url: "./openapi.yaml" },
-        {
-          ...settings,
-          title: "gRPC API",
-          slug: "grpc",
-          url: "./grpc.openapi.json",
-          hideTestRequestButton: true,
-          hiddenClients: true,
-        },
-      ]);
+      });
     </script>
   </body>
 </html>

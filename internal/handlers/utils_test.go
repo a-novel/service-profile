@@ -10,12 +10,12 @@ import (
 	"github.com/a-novel-kit/golib/postgres"
 	postgrespresets "github.com/a-novel-kit/golib/postgres/presets"
 
-	"github.com/a-novel/service-template/internal/config/configtest"
+	"github.com/a-novel/service-profile/internal/config/configtest"
 )
 
 const (
 	// serviceTokenAudience is the audience the service token tests answer to.
-	serviceTokenAudience = "service-template"
+	serviceTokenAudience = "service-profile"
 	// serviceTokenCaller is the one caller the service token tests allow.
 	serviceTokenCaller = "system:serviceaccount:agora:caller"
 	// serviceTokenStranger is a caller outside the allowed ones.

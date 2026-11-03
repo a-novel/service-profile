@@ -10,8 +10,8 @@ import (
 	"github.com/a-novel-kit/golib/servicetoken"
 	"github.com/a-novel-kit/golib/servicetoken/servicetokentest"
 
-	"github.com/a-novel/service-template/internal/config"
-	"github.com/a-novel/service-template/internal/handlers"
+	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/handlers"
 )
 
 func TestRestServiceToken(t *testing.T) {
@@ -69,13 +69,13 @@ func TestRestServiceToken(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v0/items", nil)
+			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/profile", nil)
 			if testCase.token != "" {
 				request.Header.Set(servicetoken.Header, testCase.token)
 			}
 
 			w := httptest.NewRecorder()
-			withServiceToken := handlers.RestServiceToken(testCase.tokenConfig, &http.Client{}, config.LoggerDev, "/v0/ping")
+			withServiceToken := handlers.RestServiceToken(testCase.tokenConfig, &http.Client{}, config.LoggerDev, "/v1/ping")
 			withServiceToken(router).ServeHTTP(w, request)
 
 			require.Equal(t, testCase.expectStatus, w.Code)

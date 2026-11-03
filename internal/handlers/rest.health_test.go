@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/a-novel/service-template/internal/handlers"
+	"github.com/a-novel/service-profile/internal/handlers"
 )
 
 func TestRestHealth(t *testing.T) {
@@ -64,7 +64,7 @@ func TestRestHealth(t *testing.T) {
 			recorder := httptest.NewRecorder()
 
 			handlers.NewRestHealth().ServeHTTP(
-				recorder, httptest.NewRequestWithContext(ctx, http.MethodGet, "/v0/healthcheck", nil),
+				recorder, httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/healthcheck", nil),
 			)
 
 			response := recorder.Result()

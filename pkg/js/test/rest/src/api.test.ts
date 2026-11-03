@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { TemplateApi } from "@a-novel/service-template-rest";
+import { ProfileApi } from "@a-novel/service-profile-rest";
 
-const api = new TemplateApi(process.env.REST_URL!);
+const api = new ProfileApi(process.env.REST_URL!);
 
 describe("ping", () => {
   it("returns success", async () => {
