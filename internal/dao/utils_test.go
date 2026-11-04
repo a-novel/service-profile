@@ -54,7 +54,9 @@ type profileRow struct {
 	UpdatedAt time.Time `bun:"updated_at"`
 }
 
-// profileFixtures returns the profiles every DAO test seeds: one with a picture, one without.
+// profileFixtures returns the profiles every DAO test seeds: one with a picture, one without. The
+// insert scans the returned rows back into them, so they point at copies, never at the variables
+// parallel tests share.
 func profileFixtures() []*profileRow {
 	return []*profileRow{
 		{
@@ -63,8 +65,6 @@ func profileFixtures() []*profileRow {
 			Username:         lo.ToPtr("Jean Paul"),
 			Picture:          picture,
 			PictureType:      lo.ToPtr("image/webp"),
-			// A copy: the insert scans the returned row into the fixture, and parallel tests share
-			// updatedAt.
 			PictureUpdatedAt: lo.ToPtr(updatedAt),
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
