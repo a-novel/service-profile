@@ -4,10 +4,14 @@ go 1.27.3
 
 require (
 	github.com/a-novel-kit/golib v0.62.3
+	github.com/a-novel/service-authentication/v2 v2.24.0
+	github.com/a-novel/service-json-keys/v2 v2.15.3
 	github.com/clipperhouse/uax29/v2 v2.7.0
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-playground/validator/v10 v10.30.5
+	github.com/goccy/go-yaml v1.19.2
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/schema v1.4.1
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.12.1
 	github.com/uptrace/bun v1.3.0
@@ -15,6 +19,7 @@ require (
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
 	golang.org/x/image v0.47.0
+	google.golang.org/grpc v1.85.0
 )
 
 require (
@@ -79,7 +84,6 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261026165753-2ffab32bce7e // indirect
-	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	mellium.im/sasl v0.3.2 // indirect
 )

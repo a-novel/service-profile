@@ -38,6 +38,15 @@ const (
 	PostgresPortDefault = 5432
 	// PostgresTLSEnabledDefault encrypts the connection unless a deployment turns it off.
 	PostgresTLSEnabledDefault = true
+
+	// ServiceJsonKeysHostDefault reaches a JSON Keys service on the same host.
+	ServiceJsonKeysHostDefault = "localhost"
+	// ServiceJsonKeysPortDefault is the JSON Keys service's default gRPC port.
+	ServiceJsonKeysPortDefault = 8080
+
+	// RestMaxRequestSizeDefault lets the largest picture through: 256 KiB, as the core caps it. The router
+	// applies it to every route.
+	RestMaxRequestSizeDefault = 256 << 10
 )
 
 var (
@@ -63,6 +72,18 @@ var (
 	PostgresMaxOpenConns = config.LoadEnv(getEnv("POSTGRES_MAX_OPEN_CONNS"), PostgresMaxOpenConnsDefault, strconv.Atoi)
 	// PostgresMaxIdleConns is the maximum number of connections kept open while idle.
 	PostgresMaxIdleConns = config.LoadEnv(getEnv("POSTGRES_MAX_IDLE_CONNS"), PostgresMaxIdleConnsDefault, strconv.Atoi)
+
+	// ServiceJsonKeysHost is the hostname of the JSON Keys service, without scheme or port.
+	ServiceJsonKeysHost = config.LoadEnv(getEnv("SERVICE_JSON_KEYS_HOST"), ServiceJsonKeysHostDefault, config.StringParser)
+	// ServiceJsonKeysPort is the gRPC port of the JSON Keys service.
+	ServiceJsonKeysPort = config.LoadEnv(getEnv("SERVICE_JSON_KEYS_PORT"), ServiceJsonKeysPortDefault, strconv.Atoi)
+	// ServiceJsonKeysTokenPath is the file the kubelet projects this service's token for JSON Keys into.
+	// When set, the JSON Keys connection sends that token with every call.
+	ServiceJsonKeysTokenPath = getEnv("SERVICE_JSON_KEYS_TOKEN_PATH")
+	// ServiceJsonKeysTLS dials the JSON Keys service over TLS once ServiceJsonKeysTokenPath names a token.
+	// The server's certificate is verified for ServiceJsonKeysHost against the system roots, which
+	// SSL_CERT_DIR extends.
+	ServiceJsonKeysTLS = config.LoadEnv(getEnv("SERVICE_JSON_KEYS_TLS"), false, strconv.ParseBool)
 
 	// AppName is the name of the application, as it appears in logs and tracing.
 	AppName = config.LoadEnv(getEnv("APP_NAME"), AppNameDefault, config.StringParser)
@@ -97,11 +118,12 @@ var (
 	DowntimeStart = config.LoadEnv(getEnv("DOWNTIME_START"), nil, downtime.ParseStart)
 )
 
-// restDefaults keeps golib's REST defaults but for the versioned ping path.
+// restDefaults keeps golib's REST defaults but for the versioned ping path and the request size.
 func restDefaults() httpf.ServerConfig {
 	defaults := httpf.ServerConfigDefault
 	defaults.Liveness = "/v1/ping"
 	defaults.Timeouts.Shutdown = TimeoutShutdownDefault
+	defaults.MaxRequestSize = RestMaxRequestSizeDefault
 
 	return defaults
 }

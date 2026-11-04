@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -15,6 +16,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/lo"
 
+	serviceauthentication "github.com/a-novel/service-authentication/v2/pkg/go"
+	servicejsonkeys "github.com/a-novel/service-json-keys/v2/pkg/go"
+
 	"github.com/a-novel-kit/golib/downtime"
 	"github.com/a-novel-kit/golib/httpf"
 	"github.com/a-novel-kit/golib/otel"
@@ -22,6 +26,8 @@ import (
 
 	"github.com/a-novel/service-profile/internal/config"
 	"github.com/a-novel/service-profile/internal/config/env"
+	"github.com/a-novel/service-profile/internal/core"
+	"github.com/a-novel/service-profile/internal/dao"
 	"github.com/a-novel/service-profile/internal/handlers"
 )
 
@@ -54,11 +60,52 @@ func main() {
 	}
 
 	// =================================================================================================================
+	// CLIENTS
+	// =================================================================================================================
+
+	jsonKeysClient := lo.Must(servicejsonkeys.NewClient(
+		net.JoinHostPort(cfg.Dependencies.ServiceJsonKeysHost, strconv.Itoa(cfg.Dependencies.ServiceJsonKeysPort)),
+		lo.Must(cfg.Dependencies.ServiceJsonKeysCredentials.Options(ctx))...,
+	))
+	defer jsonKeysClient.Close()
+
+	claimsVerifier := lo.Must(servicejsonkeys.NewClaimsVerifier[serviceauthentication.Claims](jsonKeysClient))
+	withAuth := serviceauthentication.NewAuthHandler(claimsVerifier, cfg.Permissions, cfg.Logger)
+
+	// =================================================================================================================
+	// DAO
+	// =================================================================================================================
+
+	daoProfileSelect := dao.NewPgProfileSelect()
+	daoProfileSelectByUser := dao.NewPgProfileSelectByUser()
+	daoProfileUsernameUpsert := dao.NewPgProfileUsernameUpsert()
+	daoProfilePictureUpsert := dao.NewPgProfilePictureUpsert()
+	daoProfilePictureDelete := dao.NewPgProfilePictureDelete()
+	daoProfilePictureSelect := dao.NewPgProfilePictureSelect()
+
+	// =================================================================================================================
+	// SERVICES
+	// =================================================================================================================
+
+	serviceProfileGet := core.NewProfileGet(daoProfileSelect)
+	serviceProfileGetSelf := core.NewProfileGetSelf(daoProfileSelectByUser)
+	serviceProfileUsernameUpdate := core.NewProfileUsernameUpdate(daoProfileUsernameUpsert)
+	serviceProfilePictureUpdate := core.NewProfilePictureUpdate(daoProfilePictureUpsert)
+	serviceProfilePictureDelete := core.NewProfilePictureDelete(daoProfilePictureDelete)
+	serviceProfilePictureGet := core.NewProfilePictureGet(daoProfilePictureSelect)
+
+	// =================================================================================================================
 	// HANDLERS
 	// =================================================================================================================
 
 	handlerPing := handlers.NewRestPing()
-	handlerHealth := handlers.NewRestHealth()
+	handlerHealth := handlers.NewRestHealth(jsonKeysClient)
+	handlerProfileGet := handlers.NewRestProfileGet(serviceProfileGet, cfg.Logger)
+	handlerProfileGetSelf := handlers.NewRestProfileGetSelf(serviceProfileGetSelf, cfg.Logger)
+	handlerProfileUsernameUpdate := handlers.NewRestProfileUsernameUpdate(serviceProfileUsernameUpdate, cfg.Logger)
+	handlerProfilePictureUpdate := handlers.NewRestProfilePictureUpdate(serviceProfilePictureUpdate, cfg.Logger)
+	handlerProfilePictureDelete := handlers.NewRestProfilePictureDelete(serviceProfilePictureDelete, cfg.Logger)
+	handlerProfilePictureGet := handlers.NewRestProfilePictureGet(serviceProfilePictureGet, cfg.Logger)
 
 	// =================================================================================================================
 	// ROUTER
@@ -72,6 +119,13 @@ func main() {
 	router.Route("/v1", func(api chi.Router) {
 		api.Get("/ping", handlerPing.ServeHTTP)
 		api.Get("/healthcheck", handlerHealth.ServeHTTP)
+
+		withAuth(api, config.PermissionProfileRead).Get("/profile", handlerProfileGet.ServeHTTP)
+		withAuth(api, config.PermissionProfileRead).Get("/profile/self", handlerProfileGetSelf.ServeHTTP)
+		withAuth(api, config.PermissionProfileRead).Get("/profile/picture", handlerProfilePictureGet.ServeHTTP)
+		withAuth(api, config.PermissionProfileWrite).Put("/profile", handlerProfileUsernameUpdate.ServeHTTP)
+		withAuth(api, config.PermissionProfileWrite).Put("/profile/picture", handlerProfilePictureUpdate.ServeHTTP)
+		withAuth(api, config.PermissionProfileWrite).Delete("/profile/picture", handlerProfilePictureDelete.ServeHTTP)
 	})
 
 	// =================================================================================================================
