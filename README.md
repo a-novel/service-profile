@@ -202,6 +202,15 @@ const api = new ProfileApi("http://service-profile:8080");
 await api.ping();
 ```
 
+Every resource helper takes an access token from the authentication service. A read accepts any token, an anonymous one included; a write acts for the signed-in user:
+
+```typescript
+import { profileGet, profileUsernameUpdate } from "@a-novel/service-profile-rest";
+
+const mine = await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
+const profile = await profileGet(api, anonymousToken, mine.id);
+```
+
 ## Running locally
 
 The **standalone** images bundle a server with the migrations, which they apply on every boot. Use them for a throwaway instance without the dev toolchain, never for a deployment with several replicas. Run a JSON Keys server beside it, as its own README shows.

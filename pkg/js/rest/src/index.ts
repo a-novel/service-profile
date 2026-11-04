@@ -3,3 +3,4 @@
  * schema-validated helpers for each resource it exposes.
  */
 export * from "./api";
+export * from "./profile";
