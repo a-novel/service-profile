@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/a-novel-kit/golib/grpcf"
 	"github.com/a-novel-kit/golib/logging"
 	loggingpresets "github.com/a-novel-kit/golib/logging/presets"
 	"github.com/a-novel-kit/golib/otel"
@@ -44,7 +45,13 @@ var AppPresetDefault = App{
 		Name:          env.AppName,
 		DowntimeStart: env.DowntimeStart,
 	},
-	Rest: env.Rest,
+	Dependencies: Dependencies{
+		ServiceJsonKeysHost:        env.ServiceJsonKeysHost,
+		ServiceJsonKeysPort:        env.ServiceJsonKeysPort,
+		ServiceJsonKeysCredentials: newCredentials(env.ServiceJsonKeysTokenPath, env.ServiceJsonKeysTLS),
+	},
+	Permissions: PermissionsConfigDefault,
+	Rest:        env.Rest,
 	ServiceToken: servicetoken.Config{
 		Issuer:   env.ServiceTokenIssuer,
 		Audience: env.ServiceTokenAudience,
@@ -70,4 +77,14 @@ func newOtelPreset() otel.Config {
 	default:
 		return &otelpresets.OTLP{UntracedPaths: []string{env.Rest.Liveness}, FlushTimeout: OtelFlushTimeout}
 	}
+}
+
+// newCredentials authenticates a connection with the service token at tokenPath, over TLS once overTLS
+// is set. Without one, it sends nothing and dials plaintext.
+func newCredentials(tokenPath string, overTLS bool) grpcf.CredentialsProvider {
+	if tokenPath == "" {
+		return &grpcf.LocalCredentialsProvider{}
+	}
+
+	return &grpcf.ServiceTokenCredentialsProvider{ServiceTokenPath: tokenPath, TLS: overTLS}
 }

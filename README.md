@@ -18,7 +18,7 @@ The backend of Agora's public profiles.
 
 ## What it does
 
-The service stores each user's public profile: a username and a square picture, WebP or JPEG. Any caller holding an access token reads a profile by its ID, an anonymous token included, and only its owner writes it. No response names the user behind a profile. It serves one public REST API (`cmd/rest`), for any HTTP client.
+The service stores each user's public profile: a username and a square picture, WebP or JPEG. Any caller holding an access token reads a profile by its ID, an anonymous token included, and only its owner writes it. No response names the user behind a profile. It serves one public REST API (`cmd/rest`), for any HTTP client, and checks each caller's access token with [JSON Keys](https://github.com/a-novel/service-json-keys).
 
 ## Deploying
 
@@ -32,7 +32,7 @@ Deploy the images with any container orchestrator. The composition below shows w
 | `service-profile/jobs/migrations` | One-shot schema migration job; runs to completion before the server starts. |
 | `service-profile/database`        | PostgreSQL with pgBackRest, or bring your own Postgres.                     |
 
-Pin every image to the same release tag. A production deployment runs `database`, then `migrations` to completion, then any number of `rest` replicas. Provide `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DATABASE` through the orchestrator; store the password as a secret.
+Pin every image to the same release tag. A production deployment runs `database`, then `migrations` to completion, then any number of `rest` replicas. The server reaches a JSON Keys gRPC server, deployed from that service's own images. Provide `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DATABASE` through the orchestrator; store the password as a secret.
 
 <!-- TODO(project-docs): replace v0.0.0 with the new service's release tag -->
 
@@ -82,6 +82,8 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DATABASE: "${POSTGRES_DATABASE}"
       POSTGRES_TLS_ENABLED: "false"
+      SERVICE_JSON_KEYS_HOST: service-json-keys
+      SERVICE_JSON_KEYS_PORT: "8080"
     networks: [api]
 
 networks:
@@ -99,15 +101,17 @@ The database image packages PostgreSQL and pgBackRest on Wolfi. The container bu
 
 Every variable is read from the process environment. `SERVICE_PROFILE_ENV_PREFIX` prepends a prefix to every name, so the service can share an environment without collisions.
 
-| Name                   | Description                                                                                                                   | Images |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
-| `POSTGRES_HOST`        | PostgreSQL hostname or IP address. Selects the discrete connection fields. **Required for new deployments.**                  | all    |
-| `POSTGRES_PORT`        | PostgreSQL port. Defaults to `5432`.                                                                                          | all    |
-| `POSTGRES_USER`        | PostgreSQL login role. **Required when `POSTGRES_HOST` is set.**                                                              | all    |
-| `POSTGRES_PASSWORD`    | PostgreSQL login password. **Required when `POSTGRES_HOST` is set; inject it as a secret.**                                   | all    |
-| `POSTGRES_DATABASE`    | PostgreSQL database name. **Required when `POSTGRES_HOST` is set.**                                                           | all    |
-| `POSTGRES_TLS_ENABLED` | Encrypt the PostgreSQL connection. Defaults to `true`; disable only when another trusted boundary protects the database link. | all    |
-| `POSTGRES_DSN`         | Connection-URL fallback, read only when `POSTGRES_HOST` is empty.                                                             | all    |
+| Name                     | Description                                                                                                                   | Images                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `POSTGRES_HOST`          | PostgreSQL hostname or IP address. Selects the discrete connection fields. **Required for new deployments.**                  | all                       |
+| `POSTGRES_PORT`          | PostgreSQL port. Defaults to `5432`.                                                                                          | all                       |
+| `POSTGRES_USER`          | PostgreSQL login role. **Required when `POSTGRES_HOST` is set.**                                                              | all                       |
+| `POSTGRES_PASSWORD`      | PostgreSQL login password. **Required when `POSTGRES_HOST` is set; inject it as a secret.**                                   | all                       |
+| `POSTGRES_DATABASE`      | PostgreSQL database name. **Required when `POSTGRES_HOST` is set.**                                                           | all                       |
+| `POSTGRES_TLS_ENABLED`   | Encrypt the PostgreSQL connection. Defaults to `true`; disable only when another trusted boundary protects the database link. | all                       |
+| `POSTGRES_DSN`           | Connection-URL fallback, read only when `POSTGRES_HOST` is empty.                                                             | all                       |
+| `SERVICE_JSON_KEYS_HOST` | Hostname of the JSON Keys gRPC server, which verifies access tokens. Defaults to `localhost`.                                 | `rest`, `standalone-rest` |
+| `SERVICE_JSON_KEYS_PORT` | Port of the JSON Keys gRPC server. Defaults to `8080`.                                                                        | `rest`, `standalone-rest` |
 
 <details>
 <summary>Optional configuration (server tuning, service tokens, OpenTelemetry)</summary>
@@ -116,7 +120,7 @@ REST tuning (images `rest`, `standalone-rest`):
 
 | Name                          | Description                                                                                                                                                                                                                                       | Default                          |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `REST_MAX_REQUEST_SIZE`       | Maximum request body size, in bytes, on every route.                                                                                                                                                                                              | `16384` (16KiB)                  |
+| `REST_MAX_REQUEST_SIZE`       | Maximum request body size, in bytes, on every route. The default fits the largest picture the service stores.                                                                                                                                     | `262144` (256KiB)                |
 | `REST_TLS_CERT_FILE`          | PEM certificate chain the server presents, leaf first. With `REST_TLS_KEY_FILE`, the server serves TLS on its port, and loads the certificate again at the first connection after the file changes, as when cert-manager renews a mounted Secret. |                                  |
 | `REST_TLS_KEY_FILE`           | PEM private key of that certificate.                                                                                                                                                                                                              |                                  |
 | `REST_CLIENT_IP_HEADER`       | Header a trusted proxy sets to the visitor IP. Set it only when every request comes through that proxy.                                                                                                                                           | TCP peer                         |
@@ -135,14 +139,16 @@ REST tuning (images `rest`, `standalone-rest`):
 | `REST_CORS_ALLOW_CREDENTIALS` | CORS allow-credentials flag.                                                                                                                                                                                                                      | `false`                          |
 | `REST_CORS_MAX_AGE`           | CORS max-age, in seconds.                                                                                                                                                                                                                         | `3600`                           |
 
-Service tokens (images `rest`, `standalone-rest`). Without `SERVICE_TOKEN_ISSUER`, the server refuses to start, unless `SERVICE_ISSUER_OPTIONAL` lets it take every request: the `standalone-rest` image sets it for local, test and consumer stacks, and production never does. With it, the server refuses a request unless its `X-Service-Authorization` header carries a token from an allowed caller. The check runs before the server reads `REST_CLIENT_IP_HEADER` or counts a rate limit, so only an allowed caller names the visitor IP. The ping stays open for probes.:
+Service tokens (images `rest`, `standalone-rest`). Without `SERVICE_TOKEN_ISSUER`, the server refuses to start, unless `SERVICE_ISSUER_OPTIONAL` lets it take every request: the `standalone-rest` image sets it for local, test and consumer stacks, and production never does. With it, the server refuses a request unless its `X-Service-Authorization` header carries a token from an allowed caller. The check runs before the server reads `REST_CLIENT_IP_HEADER` or counts a rate limit, so only an allowed caller names the visitor IP. The ping stays open for probes. Each service the server calls has its own audience, so each connection sends its own token:
 
-| Name                      | Description                                                                                                                                                                                                                                                                 | Default |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `SERVICE_TOKEN_ISSUER`    | Issuer of the service tokens the server accepts, such as a GKE cluster's `https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>`. The server reads its keys through its OpenID discovery document, so it needs egress to its host. |         |
-| `SERVICE_TOKEN_AUDIENCE`  | Audience the server answers to. Each caller's projected token names it.                                                                                                                                                                                                     |         |
-| `SERVICE_TOKEN_CALLERS`   | Service accounts allowed to call, comma-separated, each as `system:serviceaccount:<namespace>:<name>`.                                                                                                                                                                      |         |
-| `SERVICE_ISSUER_OPTIONAL` | Set to `true` to start without `SERVICE_TOKEN_ISSUER` and take every request. The `standalone-rest` image sets it; never set it in production.                                                                                                                              | `false` |
+| Name                           | Description                                                                                                                                                                                                                                                                 | Default |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `SERVICE_TOKEN_ISSUER`         | Issuer of the service tokens the server accepts, such as a GKE cluster's `https://container.googleapis.com/v1/projects/<project>/locations/<location>/clusters/<cluster>`. The server reads its keys through its OpenID discovery document, so it needs egress to its host. |         |
+| `SERVICE_TOKEN_AUDIENCE`       | Audience the server answers to. Each caller's projected token names it.                                                                                                                                                                                                     |         |
+| `SERVICE_TOKEN_CALLERS`        | Service accounts allowed to call, comma-separated, each as `system:serviceaccount:<namespace>:<name>`.                                                                                                                                                                      |         |
+| `SERVICE_ISSUER_OPTIONAL`      | Set to `true` to start without `SERVICE_TOKEN_ISSUER` and take every request. The `standalone-rest` image sets it; never set it in production.                                                                                                                              | `false` |
+| `SERVICE_JSON_KEYS_TOKEN_PATH` | File the kubelet projects the service's token for the JSON Keys audience into. When set, the JSON Keys connection sends that token with every call, over TLS once `SERVICE_JSON_KEYS_TLS` is set.                                                                           |         |
+| `SERVICE_JSON_KEYS_TLS`        | Dial JSON Keys over TLS once `SERVICE_JSON_KEYS_TOKEN_PATH` is set, verifying its certificate for `SERVICE_JSON_KEYS_HOST` against the system roots, which `SSL_CERT_DIR` extends.                                                                                          | `false` |
 
 Database connection pool (server images). The limits are **per process**. The database's `max_connections` has to cover every replica plus the migration job; the stock `postgres` default is 100.
 
@@ -198,7 +204,7 @@ await api.ping();
 
 ## Running locally
 
-The **standalone** images bundle a server with the migrations, which they apply on every boot. Use them for a throwaway instance without the dev toolchain, never for a deployment with several replicas.
+The **standalone** images bundle a server with the migrations, which they apply on every boot. Use them for a throwaway instance without the dev toolchain, never for a deployment with several replicas. Run a JSON Keys server beside it, as its own README shows.
 
 ```yaml
 services:
@@ -225,6 +231,7 @@ services:
       postgres-profile: { condition: service_healthy }
     environment:
       POSTGRES_DSN: "postgres://postgres:postgres@postgres-profile:5432/postgres?sslmode=disable"
+      SERVICE_JSON_KEYS_HOST: service-json-keys
     networks: [api]
 
 networks:

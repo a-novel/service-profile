@@ -19,7 +19,7 @@ Check that it answers:
 # Liveness
 curl "http://localhost:${REST_PORT}/v1/ping"
 
-# Dependency check (Postgres)
+# Dependency check (Postgres and JSON Keys)
 curl "http://localhost:${REST_PORT}/v1/healthcheck"
 ```
 

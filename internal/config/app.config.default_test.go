@@ -12,22 +12,44 @@ import (
 func TestAppPresetDefault(t *testing.T) {
 	t.Parallel()
 
+	const local = `&grpcf.LocalCredentialsProvider{}`
+
 	testCases := []struct {
 		name string
 
 		restTimeoutRead string
+		env             []string
 
-		expectRead string
-		expectErr  string
+		expect    string
+		expectErr string
 	}{
 		{
-			name:       "Success/Default",
-			expectRead: "15s",
+			name:   "Success/Default",
+			expect: "15s " + local,
 		},
 		{
 			name:            "Success",
 			restTimeoutRead: "2s",
-			expectRead:      "2s",
+			expect:          "2s " + local,
+		},
+		{
+			name:   "Success/ServiceToken",
+			env:    []string{"TEST_SERVICE_JSON_KEYS_TOKEN_PATH=/tokens/json-keys"},
+			expect: `15s &grpcf.ServiceTokenCredentialsProvider{ServiceTokenPath:"/tokens/json-keys", TLS:false}`,
+		},
+		{
+			name: "Success/ServiceTokenTLS",
+			env: []string{
+				"TEST_SERVICE_JSON_KEYS_TOKEN_PATH=/tokens/json-keys",
+				"TEST_SERVICE_JSON_KEYS_TLS=true",
+			},
+			expect: `15s &grpcf.ServiceTokenCredentialsProvider{ServiceTokenPath:"/tokens/json-keys", TLS:true}`,
+		},
+		{
+			// A local stack has no service token, so it keeps a plaintext connection.
+			name:   "Success/TLSWithoutServiceToken",
+			env:    []string{"TEST_SERVICE_JSON_KEYS_TLS=true"},
+			expect: "15s " + local,
 		},
 		{
 			name:            "Error/InvalidRestTimeoutRead",
@@ -50,6 +72,7 @@ func TestAppPresetDefault(t *testing.T) {
 				"REST_TIMEOUT_READ=invalid",
 				"TEST_REST_TIMEOUT_READ="+testCase.restTimeoutRead,
 			)
+			command.Env = append(command.Env, testCase.env...)
 
 			output, err := command.CombinedOutput()
 			if testCase.expectErr != "" {
@@ -60,7 +83,7 @@ func TestAppPresetDefault(t *testing.T) {
 			}
 
 			require.NoError(t, err, string(output))
-			require.Equal(t, testCase.expectRead, strings.TrimSpace(string(output)))
+			require.Equal(t, testCase.expect, strings.TrimSpace(string(output)))
 		})
 	}
 }
