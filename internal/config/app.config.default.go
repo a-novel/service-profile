@@ -12,7 +12,7 @@ import (
 	otelpresets "github.com/a-novel-kit/golib/otel/presets"
 	"github.com/a-novel-kit/golib/servicetoken"
 
-	"github.com/a-novel/service-template/internal/config/env"
+	"github.com/a-novel/service-profile/internal/config/env"
 )
 
 // OtelFlushTimeout bounds how long the OpenTelemetry exporter waits to flush pending spans on
@@ -27,9 +27,6 @@ var OtelPresetDefault = newOtelPreset()
 // exportsOTLP reports whether the servers export over OTLP: OTEL is set, and so is the OTLP
 // endpoint. Their logs then go through the same backend, and their spans record each request.
 var exportsOTLP = env.Otel && env.OTLPEndpoint != ""
-
-// LoggerDevGrpc prints gRPC request logs to the console for local development.
-var LoggerDevGrpc = loggingpresets.GRPCLocal{}
 
 // LoggerDev prints application and REST request logs to the console for local development.
 var LoggerDev = &loggingpresets.LogLocal{
@@ -47,17 +44,16 @@ var AppPresetDefault = App{
 		Name:          env.AppName,
 		DowntimeStart: env.DowntimeStart,
 	},
-	Grpc: env.Grpc,
 	Rest: env.Rest,
 	ServiceToken: servicetoken.Config{
 		Issuer:   env.ServiceTokenIssuer,
 		Audience: env.ServiceTokenAudience,
 		Callers:  env.ServiceTokenCallers,
 	},
+	ServiceIssuerOptional: env.ServiceIssuerOptional,
 
-	Otel:       OtelPresetDefault,
-	Logger:     lo.Ternary[logging.Log](!exportsOTLP, LoggerDev, LoggerProd),
-	GrpcLogger: lo.Ternary[logging.RPCConfig](!exportsOTLP, &LoggerDevGrpc, &loggingpresets.GRPCOTel{}),
+	Otel:   OtelPresetDefault,
+	Logger: lo.Ternary[logging.Log](!exportsOTLP, LoggerDev, LoggerProd),
 	RestLogger: lo.Ternary[logging.HTTPConfig](
 		!exportsOTLP, &loggingpresets.HTTPLocal{BaseLogger: LoggerDev}, nil,
 	),

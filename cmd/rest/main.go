@@ -1,5 +1,5 @@
-// Command rest serves the public REST API, for any HTTP client. cmd/grpc serves the same domain to
-// other services over gRPC, and cmd/migrations applies the database schema.
+// Command rest serves the public REST API, for any HTTP client. cmd/migrations applies the database
+// schema.
 package main
 
 import (
@@ -20,15 +20,18 @@ import (
 	"github.com/a-novel-kit/golib/otel"
 	"github.com/a-novel-kit/golib/postgres"
 
-	"github.com/a-novel/service-template/internal/config"
-	"github.com/a-novel/service-template/internal/config/env"
-	"github.com/a-novel/service-template/internal/core"
-	"github.com/a-novel/service-template/internal/dao"
-	"github.com/a-novel/service-template/internal/handlers"
+	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/config/env"
+	"github.com/a-novel/service-profile/internal/handlers"
 )
 
 func main() {
 	cfg := config.AppPresetDefault
+
+	// Without an issuer, every caller reaches the routes, so only the standalone image starts so.
+	if cfg.ServiceToken.Issuer == "" && !cfg.ServiceIssuerOptional {
+		log.Fatalln("SERVICE_TOKEN_ISSUER is empty: set it, or SERVICE_ISSUER_OPTIONAL=true outside production")
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -51,36 +54,11 @@ func main() {
 	}
 
 	// =================================================================================================================
-	// DAO
-	// =================================================================================================================
-
-	daoItemCreate := dao.NewPgItemCreate()
-	daoItemGet := dao.NewPgItemGet()
-	daoItemList := dao.NewPgItemList()
-	daoItemUpdate := dao.NewPgItemUpdate()
-	daoItemDelete := dao.NewPgItemDelete()
-
-	// =================================================================================================================
-	// SERVICES
-	// =================================================================================================================
-
-	serviceItemCreate := core.NewItemCreate(daoItemCreate)
-	serviceItemGet := core.NewItemGet(daoItemGet)
-	serviceItemList := core.NewItemList(daoItemList)
-	serviceItemUpdate := core.NewItemUpdate(daoItemUpdate)
-	serviceItemDelete := core.NewItemDelete(daoItemDelete)
-
-	// =================================================================================================================
 	// HANDLERS
 	// =================================================================================================================
 
 	handlerPing := handlers.NewRestPing()
 	handlerHealth := handlers.NewRestHealth()
-	handlerItemCreate := handlers.NewRestItemCreate(serviceItemCreate, cfg.Logger)
-	handlerItemGet := handlers.NewRestItemGet(serviceItemGet, cfg.Logger)
-	handlerItemList := handlers.NewRestItemList(serviceItemList, cfg.Logger)
-	handlerItemUpdate := handlers.NewRestItemUpdate(serviceItemUpdate, cfg.Logger)
-	handlerItemDelete := handlers.NewRestItemDelete(serviceItemDelete, cfg.Logger)
 
 	// =================================================================================================================
 	// ROUTER
@@ -91,14 +69,9 @@ func main() {
 		cfg.ServiceToken, httpf.NewPoolClient(httpf.PoolOptions{}), cfg.Logger, cfg.Rest.Liveness,
 	)
 
-	router.Route("/v0", func(api chi.Router) {
+	router.Route("/v1", func(api chi.Router) {
 		api.Get("/ping", handlerPing.ServeHTTP)
 		api.Get("/healthcheck", handlerHealth.ServeHTTP)
-		api.Post("/items", handlerItemCreate.ServeHTTP)
-		api.Get("/items", handlerItemList.ServeHTTP)
-		api.Get("/item", handlerItemGet.ServeHTTP)
-		api.Put("/item", handlerItemUpdate.ServeHTTP)
-		api.Delete("/item", handlerItemDelete.ServeHTTP)
 	})
 
 	// =================================================================================================================

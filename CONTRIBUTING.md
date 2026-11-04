@@ -1,41 +1,29 @@
-# Contributing to service-template
+# Contributing to service-profile
 
-This document covers what is specific to the template. The [taxonomy](https://github.com/a-novel/.github/blob/master/docs/taxonomy.md#inside-a-service-layers-and-contracts) explains the layers every service shares. Platform setup and daily commands are in the [developer guide](https://a-novel-kit.github.io/stack/).
-
-The template is a fork target: an `item` resource implements the common service contracts end to end, with no feature of its own. The [README](./README.md#using-this-template) covers how to fork it.
+This document covers what is specific to the Profile service. Read the [README](./README.md) first for what the service does. The [developer guide](https://a-novel-kit.github.io/stack/) sets up the platform, and the [taxonomy](https://github.com/a-novel/.github/blob/master/docs/taxonomy.md#inside-a-service-layers-and-contracts) explains the layers every service shares.
 
 ---
 
-## Running it locally
+## Quick local interactions
 
-The `a-novel` daemon skips the template, so start it with Podman Compose. Set the host ports on the first lines.
-
-```bash
-POSTGRES_PORT=5432
-REST_PORT=8080
-GRPC_PORT=8081
-
-export POSTGRES_PORT REST_PORT GRPC_PORT
-podman compose -p service-template -f builds/podman-compose.yaml --profile rest --profile grpc up -d --build
-```
-
-A fork is a service the daemon runs, so it starts with `a-novel run start <service>/rest` instead.
-
-Check that both servers answer:
+Start the server, then load the ports the `a-novel` daemon gave it into your shell:
 
 ```bash
-curl "http://localhost:$REST_PORT/v0/ping"
-curl "http://localhost:$REST_PORT/v0/healthcheck"
-grpcurl -plaintext "localhost:$GRPC_PORT" anovel.template.v0.StatusService/Status
+a-novel run start service-profile/rest
+eval "$(a-novel run env service-profile)"
 ```
 
-The `item` routes and RPCs are the placeholder a fork replaces. Their shapes are in [`openapi.yaml`](./openapi.yaml) and [`internal/models/proto/anovel/template/v0/`](./internal/models/proto/anovel/template/v0/).
-
-Stop the stack and drop its database when you are done:
+Check that it answers:
 
 ```bash
-podman compose -p service-template -f builds/podman-compose.yaml --profile rest --profile grpc down --volumes
+# Liveness
+curl "http://localhost:${REST_PORT}/v1/ping"
+
+# Dependency check (Postgres)
+curl "http://localhost:${REST_PORT}/v1/healthcheck"
 ```
+
+The routes are described in [`openapi.yaml`](./openapi.yaml).
 
 ---
 
@@ -58,7 +46,7 @@ err := service.transactor.WithinTx(ctx, func(ctx context.Context) error {
 service := core.NewSomeService(daoSomething, postgres.NewTransactor(nil))
 ```
 
-Each `item` operation writes once, so none of them takes a transactor.
+Each profile operation writes once, so none of them takes a transactor.
 
 **Pass the callback's `ctx` down, never the outer one.** A data-access object resolves its database handle from the context, and the transaction lives on the context the callback receives. An inner call given the outer context runs on the connection pool and commits on its own, while the block still reports success.
 
@@ -70,4 +58,4 @@ Unit-test a service that takes a transactor with `transactiontest.NewTransactor`
 
 ## Questions?
 
-[Open an issue](https://github.com/a-novel/service-template/issues) with logs and environment details.
+[Open an issue](https://github.com/a-novel/service-profile/issues) with logs and environment details.
