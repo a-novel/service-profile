@@ -63,7 +63,9 @@ func profileFixtures() []*profileRow {
 			Username:         lo.ToPtr("Jean Paul"),
 			Picture:          picture,
 			PictureType:      lo.ToPtr("image/webp"),
-			PictureUpdatedAt: &updatedAt,
+			// A copy: the insert scans the returned row into the fixture, and parallel tests share
+			// updatedAt.
+			PictureUpdatedAt: lo.ToPtr(updatedAt),
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		},
