@@ -3,7 +3,7 @@ module github.com/a-novel/service-profile
 go 1.27.3
 
 require (
-	github.com/a-novel-kit/golib v0.62.3
+	github.com/a-novel-kit/golib v0.63.0
 	github.com/a-novel/service-authentication/v2 v2.25.1
 	github.com/a-novel/service-json-keys/v2 v2.15.6
 	github.com/clipperhouse/uax29/v2 v2.7.0
