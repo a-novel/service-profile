@@ -11,10 +11,23 @@ info:
   summary: The backend of Agora's public profiles.
   description: |
     The public REST API of Agora's profiles: a username and a picture for each user.
+
+    Each user holds one profile: a username and a square picture. Any access token reads a profile by its
+    ID, an anonymous one included, and only the profile's owner writes it. The first write creates the
+    profile. No response names the user behind a profile.
   version: v0.0.0
   license:
     name: AGPL-3.0
     url: "https://raw.githubusercontent.com/a-novel/service-profile/refs/heads/master/LICENSE"
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: health
+    description: Liveness and dependency checks.
+  - name: profile
+    description: The public profile of each user, and its picture.
 
 paths:
   /v1/ping:
@@ -53,6 +66,189 @@ paths:
         default:
           $ref: "#/components/responses/internalError"
 
+  /v1/profile/self:
+    get:
+      operationId: profileGetSelf
+      summary: Get the caller's profile.
+      description: |
+        Returns the signed-in caller's profile. A profile exists from its owner's first write, so a caller who
+        never set a username or a picture holds none yet.
+      tags: [profile]
+      responses:
+        "200":
+          $ref: "#/components/responses/profile"
+        "401":
+          $ref: "#/components/responses/invalidToken"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/notFound"
+        "429":
+          $ref: "#/components/responses/tooManyRequests"
+        "503":
+          $ref: "#/components/responses/plannedDowntime"
+        default:
+          $ref: "#/components/responses/internalError"
+
+  /v1/profile:
+    get:
+      operationId: profileGet
+      summary: Get a profile.
+      description: |
+        Returns any profile by its ID. Any access token reads it, an anonymous one included.
+      tags: [profile]
+      parameters:
+        - $ref: "#/components/parameters/profileID"
+      responses:
+        "200":
+          $ref: "#/components/responses/profile"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "401":
+          $ref: "#/components/responses/invalidToken"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/notFound"
+        "429":
+          $ref: "#/components/responses/tooManyRequests"
+        "503":
+          $ref: "#/components/responses/plannedDowntime"
+        default:
+          $ref: "#/components/responses/internalError"
+
+    put:
+      operationId: profileUsernameUpdate
+      summary: Set or clear the caller's username.
+      description: |
+        Sets the signed-in caller's username, and creates the caller's profile on the first write. The server
+        trims the spaces at both ends. A name left empty clears the username. Any other requires 1 to 32
+        glyphs: grapheme clusters (UAX #29) that hold a
+        code point which is not Default_Ignorable_Code_Point. A glyph holds 64 bytes at most, and the name
+        2048. Control characters, every whitespace but U+0020, and the bidirectional embedding, override and
+        isolate controls (U+202A to U+202E, U+2066 to U+2069) are refused.
+      tags: [profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/profileUsernameUpdateRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/profile"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "401":
+          $ref: "#/components/responses/invalidToken"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "413":
+          $ref: "#/components/responses/contentTooLarge"
+        "429":
+          $ref: "#/components/responses/tooManyRequests"
+        "503":
+          $ref: "#/components/responses/plannedDowntime"
+        default:
+          $ref: "#/components/responses/internalError"
+
+  /v1/profile/picture:
+    get:
+      operationId: profilePictureGet
+      summary: Get a profile's picture.
+      description: |
+        Returns the bytes of any profile's picture, with the media type it was stored with. Any access token
+        reads it, an anonymous one included.
+
+        The response carries a strong `ETag` and `Last-Modified` from the picture's version, and answers a
+        matching `If-None-Match` or `If-Modified-Since` with 304. `Cache-Control: no-cache` makes a cache
+        revalidate on every use: a client that caches for good does so under a URL that names
+        `pictureVersion`.
+      tags: [profile]
+      parameters:
+        - $ref: "#/components/parameters/profileID"
+      responses:
+        "200":
+          $ref: "#/components/responses/picture"
+        "304":
+          $ref: "#/components/responses/notModified"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "401":
+          $ref: "#/components/responses/invalidToken"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/notFound"
+        "429":
+          $ref: "#/components/responses/tooManyRequests"
+        "503":
+          $ref: "#/components/responses/plannedDowntime"
+        default:
+          $ref: "#/components/responses/internalError"
+
+    put:
+      operationId: profilePictureUpdate
+      summary: Set the caller's picture.
+      description: |
+        Replaces the signed-in caller's picture, and creates the caller's profile on the first write. The body
+        is the encoded image, 256 KiB at most. The server recognizes its format from the bytes, whatever
+        `Content-Type` says, and accepts a still WebP or a JPEG that decodes whole into a square of 1 to
+        512 pixels. It refuses any other picture with 422, naming the rule it broke.
+      tags: [profile]
+      requestBody:
+        required: true
+        content:
+          image/webp:
+            schema:
+              type: string
+              contentMediaType: image/webp
+          image/jpeg:
+            schema:
+              type: string
+              contentMediaType: image/jpeg
+      responses:
+        "200":
+          $ref: "#/components/responses/profile"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "401":
+          $ref: "#/components/responses/invalidToken"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "413":
+          $ref: "#/components/responses/contentTooLarge"
+        "422":
+          $ref: "#/components/responses/pictureRefused"
+        "429":
+          $ref: "#/components/responses/tooManyRequests"
+        "503":
+          $ref: "#/components/responses/plannedDowntime"
+        default:
+          $ref: "#/components/responses/internalError"
+
+    delete:
+      operationId: profilePictureDelete
+      summary: Remove the caller's picture.
+      description: |
+        Removes the signed-in caller's picture. A profile without a picture keeps none.
+      tags: [profile]
+      responses:
+        "200":
+          $ref: "#/components/responses/profile"
+        "401":
+          $ref: "#/components/responses/invalidToken"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/notFound"
+        "429":
+          $ref: "#/components/responses/tooManyRequests"
+        "503":
+          $ref: "#/components/responses/plannedDowntime"
+        default:
+          $ref: "#/components/responses/internalError"
+
 components:
   responses:
     pong:
@@ -88,6 +284,104 @@ components:
             degraded:
               value: { "client:postgres": { "status": "up" }, "api:jsonKeys": { "status": "down" } }
 
+    plannedDowntime:
+      description: |
+        The service is in a planned downtime and refuses work until operators end it. The platform
+        reads the announced window from the downtime document infra publishes.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/plannedDowntimeProblem"
+
+    profile:
+      description: A profile.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/profile"
+
+    picture:
+      description: The encoded picture, as its owner sent it.
+      headers:
+        ETag:
+          description: The strong validator of the picture's version.
+          schema:
+            type: string
+            examples: ['"1762244130123456"']
+        Last-Modified:
+          description: When the picture last changed, to the second.
+          schema:
+            type: string
+            examples: ["Tue, 04 Nov 2025 08:15:30 GMT"]
+        Cache-Control:
+          description: Always `no-cache`, so a cache revalidates the picture on every use.
+          schema:
+            type: string
+            const: no-cache
+        X-Content-Type-Options:
+          description: Always `nosniff`, so a browser keeps the stored media type.
+          schema:
+            type: string
+            const: nosniff
+      content:
+        image/webp:
+          schema:
+            type: string
+            contentMediaType: image/webp
+        image/jpeg:
+          schema:
+            type: string
+            contentMediaType: image/jpeg
+
+    notModified:
+      description: The picture still has the version the request names. The response has no body.
+      headers:
+        ETag:
+          description: The strong validator of the picture's version.
+          schema:
+            type: string
+        Cache-Control:
+          description: Always `no-cache`.
+          schema:
+            type: string
+            const: no-cache
+
+    badRequest:
+      description: |
+        The request could not be parsed, or failed validation. A field that breaks its rule answers a
+        problem naming each invalid field and the rule it broke. A malformed ID or JSON body answers the
+        status text alone.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/invalidRequest"
+        text/plain:
+          schema:
+            type: string
+            examples: [Bad Request]
+
+    invalidToken:
+      description: |
+        The bearer token is missing or invalid, for instance expired. Refresh the session or sign in again.
+
+    forbidden:
+      description: |
+        The session lacks the permission this route requires, or names no user, as an anonymous session does.
+
+    notFound:
+      description: |
+        No profile has the ID, the profile holds no picture, or the caller holds no profile yet.
+
+    contentTooLarge:
+      description: The body is over 256 KiB.
+
+    pictureRefused:
+      description: The picture breaks the contract, as the problem's `reason` tag names.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/pictureRefusedProblem"
+
     tooManyRequests:
       description: |
         The caller sent too many requests to this route. Retry once `Retry-After` has elapsed.
@@ -101,6 +395,72 @@ components:
       description: Something unexpected happened.
 
   schemas:
+    invalidRequest:
+      type: object
+      description: |
+        An RFC 9457 problem details body whose tags name the request fields that failed validation. Field
+        paths and rule codes come from the API definition, never from the submitted values.
+      required: [type, title, status, tags]
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          description: The problem type; about:blank makes the title the HTTP status text.
+          const: about:blank
+        title:
+          type: string
+          description: The HTTP status text.
+          examples: [Bad Request]
+        status:
+          type: integer
+          description: The HTTP status code.
+          const: 400
+        tags:
+          type: object
+          description: Public details about the failure. Clients ignore tags they do not know.
+          required: [invalidFields]
+          additionalProperties: true
+          properties:
+            invalidFields:
+              type: object
+              description: |
+                Maps the path of each invalid field, in lower camel case, to the validation rule it broke.
+                Standard rules carry their usual name (required, max); `username` names the username rule.
+              additionalProperties:
+                type: string
+              examples:
+                - { "username": "username" }
+    pictureRefusedProblem:
+      type: object
+      description: An RFC 9457 problem details body whose `reason` tag names the rule a refused picture broke.
+      required: [type, title, status, tags]
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          description: The problem type; about:blank makes the title the HTTP status text.
+          const: about:blank
+        title:
+          type: string
+          description: The HTTP status text.
+          examples: [Unprocessable Entity]
+        status:
+          type: integer
+          description: The HTTP status code.
+          const: 422
+        tags:
+          type: object
+          description: Public details about the failure. Clients ignore tags they do not know.
+          required: [reason]
+          additionalProperties: true
+          properties:
+            reason:
+              type: string
+              description: |
+                The rule the picture broke: `format` for bytes that are neither a still WebP nor a JPEG, or
+                do not decode whole; `ratio` for a picture that is not square; `dimensions` for a side
+                under 1 or over 512 pixels.
+              enum: [format, ratio, dimensions]
     plannedDowntimeProblem:
       type: object
       description: |
@@ -150,3 +510,67 @@ components:
           type: string
           description: Whether the server reached the dependency.
           enum: [up, down]
+
+    profile:
+      type: object
+      description: |
+        A user's public profile. It never names the user who owns it.
+      required: [id]
+      additionalProperties: false
+      examples:
+        - {
+            "id": "019a4e2c-7d1f-7c3a-9b2e-5f1d0c8a4b21",
+            "username": "Jean Paul",
+            "pictureVersion": "2026-11-04T08:15:30.123456Z",
+          }
+      properties:
+        id:
+          $ref: "#/components/schemas/profileID"
+        username:
+          type: string
+          description: The name the profile shows. Absent until its owner sets one.
+          examples: ["Jean Paul"]
+        pictureVersion:
+          type: string
+          description: |
+            When the picture last changed. Absent while the profile has no picture. Picture URLs carry it, so
+            a cache keeps each version for good.
+          format: date-time
+          examples: ["2026-11-04T08:15:30.123456Z"]
+
+    profileUsernameUpdateRequest:
+      type: object
+      description: Request body for setting the caller's username.
+      required: [username]
+      additionalProperties: false
+      examples:
+        - { "username": "Jean Paul" }
+      properties:
+        username:
+          type: string
+          description: The name to show, trimmed of its spaces at both ends. Empty once trimmed, it clears the username.
+          examples: ["Jean Paul"]
+
+    profileID:
+      type: string
+      description: The ID of a profile, which reads take.
+      format: uuid
+      examples:
+        - "019a4e2c-7d1f-7c3a-9b2e-5f1d0c8a4b21"
+
+  parameters:
+    profileID:
+      name: id
+      in: query
+      description: The ID of the profile.
+      required: true
+      schema:
+        $ref: "#/components/schemas/profileID"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        An access token from the authentication service. A read accepts any token, an anonymous one included;
+        a write needs a signed-in user's.

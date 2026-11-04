@@ -38,6 +38,13 @@ export class ProfileApi {
       .then(validator ? decodeHttpResponse(validator) : decodeRawHttpResponse<T>);
   }
 
+  /** Sends a request and reads the body as a Blob, typed with the response's Content-Type. */
+  async fetchBlob(input: string, init?: RequestInit): Promise<Blob> {
+    return await fetch(`${this._baseUrl}${input}`, init)
+      .then(handleHttpResponse)
+      .then((response) => response.blob());
+  }
+
   /** Liveness probe; resolves when the service is reachable. */
   async ping(): Promise<void> {
     await this.fetchVoid("/v1/ping", { method: "GET" });
