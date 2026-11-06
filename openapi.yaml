@@ -17,7 +17,7 @@ info:
     profile. No response names the user behind a profile.
   version: v1.0.1
   license:
-    name: AGPL-3.0
+    name: RPL-1.5
     url: "https://raw.githubusercontent.com/a-novel/service-profile/refs/heads/master/LICENSE"
 
 security:
