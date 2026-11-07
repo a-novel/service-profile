@@ -10,6 +10,7 @@ The backend of Agora's public profiles.
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/a-novel/service-profile)
 ![GitHub repo file or directory count](https://img.shields.io/github/directory-file-count/a-novel/service-profile)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/a-novel/service-profile)
+[![License: RPL-1.5](https://img.shields.io/badge/license-RPL--1.5-blue)](LICENSE)
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/a-novel/service-profile/main.yaml)
 [![codecov](https://codecov.io/gh/a-novel/service-profile/graph/badge.svg)](https://codecov.io/gh/a-novel/service-profile)
