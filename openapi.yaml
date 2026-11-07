@@ -15,7 +15,7 @@ info:
     Each user holds one profile: a username and a square picture. Any access token reads a profile by its
     ID, an anonymous one included, and only the profile's owner writes it. The first write creates the
     profile. No response names the user behind a profile.
-  version: v1.0.1
+  version: v1.0.2
   license:
     name: RPL-1.5
     url: "https://raw.githubusercontent.com/a-novel/service-profile/refs/heads/master/LICENSE"
