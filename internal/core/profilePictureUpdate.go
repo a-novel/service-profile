@@ -1,23 +1,16 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"image"
-	// Registers the JPEG decoder with the image package.
-	_ "image/jpeg"
 	"time"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
-	"go.opentelemetry.io/otel/trace"
-	// Registers the WebP decoder with the image package.
-	_ "golang.org/x/image/webp"
 
 	"github.com/a-novel-kit/golib/otel"
+	"github.com/a-novel-kit/golib/picture"
 
 	"github.com/a-novel/service-profile/internal/dao"
 )
@@ -26,12 +19,9 @@ import (
 // at most.
 const ProfilePictureSideMax = 512
 
-// pictureTypes maps each format the picture contract accepts, as the image package names it, to its
-// media type. The bytes name the format; the request's Content-Type never does.
-var pictureTypes = map[string]string{
-	"jpeg": "image/jpeg",
-	"webp": "image/webp",
-}
+// profilePictureRule is the rule a profile picture follows: a square, 1 to [ProfilePictureSideMax]
+// pixels wide.
+var profilePictureRule = picture.Rule{RatioWidth: 1, RatioHeight: 1, MaxWidth: ProfilePictureSideMax}
 
 // ProfilePictureUpdateDao writes the picture of a user's profile, and creates the profile on the
 // user's first write.
@@ -48,7 +38,7 @@ type ProfilePictureUpdateRequest struct {
 
 // ProfilePictureUpdate replaces the caller's picture. It accepts a still WebP or a JPEG that decodes
 // whole into a square of 1 to [ProfilePictureSideMax] pixels, and refuses any other picture with a
-// [PictureRefusedError].
+// [picture.RefusedError].
 type ProfilePictureUpdate struct {
 	dao ProfilePictureUpdateDao
 }
@@ -68,9 +58,9 @@ func (service *ProfilePictureUpdate) Exec(ctx context.Context, request *ProfileP
 		return nil, otel.ReportError(span, errors.Join(err, ErrInvalidRequest))
 	}
 
-	pictureType, err := decodePicture(ctx, request.Picture)
+	pictureType, err := picture.Check(ctx, request.Picture, profilePictureRule)
 	if err != nil {
-		return nil, otel.ReportError(span, fmt.Errorf("decode picture: %w", err))
+		return nil, otel.ReportError(span, fmt.Errorf("check picture: %w", err))
 	}
 
 	id, err := uuid.NewV7()
@@ -90,47 +80,4 @@ func (service *ProfilePictureUpdate) Exec(ctx context.Context, request *ProfileP
 	}
 
 	return newProfile(entity), nil
-}
-
-// decodePicture returns the media type of a picture the contract accepts, and a [PictureRefusedError]
-// otherwise. It reads the dimensions from the header before it decodes the image, so a small file
-// that declares a huge image costs no memory.
-func decodePicture(ctx context.Context, picture []byte) (string, error) {
-	_, span := otel.Tracer().Start(ctx, "core.decodePicture")
-	defer span.End()
-
-	config, format, err := image.DecodeConfig(bytes.NewReader(picture))
-	pictureType, accepted := pictureTypes[format]
-
-	switch {
-	case err != nil || !accepted || (format == "webp" && webpAnimated(picture)):
-		return "", refusePicture(span, ErrPictureFormat, err)
-	case config.Width != config.Height:
-		return "", refusePicture(span, ErrPictureRatio, nil)
-	case config.Width < 1 || config.Width > ProfilePictureSideMax:
-		return "", refusePicture(span, ErrPictureDimensions, nil)
-	}
-
-	_, _, err = image.Decode(bytes.NewReader(picture))
-	if err != nil {
-		return "", refusePicture(span, ErrPictureFormat, err)
-	}
-
-	return pictureType, nil
-}
-
-// refusePicture marks span failed by refusal, with the decoder's error when one caused it, and names
-// the refusal as the span's error.type, so the traces count refusals by reason.
-func refusePicture(span trace.Span, refusal PictureRefusedError, cause error) error {
-	span.SetAttributes(semconv.ErrorTypeKey.String(string(refusal)))
-
-	return otel.ReportError(span, errors.Join(refusal, cause))
-}
-
-// webpAnimated reports whether a WebP declares an animation: its VP8X chunk, which follows the RIFF
-// header, sets the animation flag (WebP Container Specification, "Extended File Format").
-func webpAnimated(picture []byte) bool {
-	const animationFlag = 1 << 1
-
-	return len(picture) > 20 && string(picture[12:16]) == "VP8X" && picture[20]&animationFlag != 0
 }

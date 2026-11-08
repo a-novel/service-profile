@@ -2,31 +2,18 @@ package core_test
 
 import (
 	"bytes"
-	_ "embed"
 	"errors"
-	"image/gif"
-	"image/png"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/a-novel-kit/golib/picture"
+
 	"github.com/a-novel/service-profile/internal/core"
 	coremocks "github.com/a-novel/service-profile/internal/core/mocks"
 	"github.com/a-novel/service-profile/internal/dao"
-)
-
-// The WebP fixtures are 16 px squares that libwebp 1.6 encoded: still.webp with cwebp -q 90, alpha.webp
-// with cwebp -q 90 -exact from a translucent picture, and animated.webp with img2webp -lossy -q 90 from
-// two frames.
-var (
-	//go:embed testdata/still.webp
-	stillWebP []byte
-	//go:embed testdata/alpha.webp
-	alphaWebP []byte
-	//go:embed testdata/animated.webp
-	animatedWebP []byte
 )
 
 func TestProfilePictureUpdate(t *testing.T) {
@@ -35,11 +22,6 @@ func TestProfilePictureUpdate(t *testing.T) {
 	errFoo := errors.New("foo")
 
 	squareJPEG := newJPEG(64, 64)
-
-	var pngPicture, gifPicture bytes.Buffer
-
-	require.NoError(t, png.Encode(&pngPicture, newImage(64, 64)))
-	require.NoError(t, gif.Encode(&gifPicture, newImage(64, 64), nil))
 
 	type daoMock struct {
 		pictureType string
@@ -68,15 +50,6 @@ func TestProfilePictureUpdate(t *testing.T) {
 			expect: coreProfile,
 		},
 		{
-			name: "Success/WebPAlpha",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: alphaWebP},
-
-			daoMock: &daoMock{pictureType: "image/webp", resp: daoProfile},
-
-			expect: coreProfile,
-		},
-		{
 			name: "Success/JPEG",
 
 			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: squareJPEG},
@@ -95,69 +68,25 @@ func TestProfilePictureUpdate(t *testing.T) {
 			expect: coreProfile,
 		},
 		{
-			name: "Success/OnePixel",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: newJPEG(1, 1)},
-
-			daoMock: &daoMock{pictureType: "image/jpeg", resp: daoProfile},
-
-			expect: coreProfile,
-		},
-		{
-			name: "Error/PNG",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: pngPicture.Bytes()},
-
-			expectErr: core.ErrPictureFormat,
-		},
-		{
-			name: "Error/GIF",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: gifPicture.Bytes()},
-
-			expectErr: core.ErrPictureFormat,
-		},
-		{
-			name: "Error/AnimatedWebP",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: animatedWebP},
-
-			expectErr: core.ErrPictureFormat,
-		},
-		{
 			name: "Error/NotAnImage",
 
 			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: []byte("not an image")},
 
-			expectErr: core.ErrPictureFormat,
-		},
-		{
-			name: "Error/TruncatedJPEG",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: squareJPEG[:len(squareJPEG)*3/4]},
-
-			expectErr: core.ErrPictureFormat,
-		},
-		{
-			name: "Error/TruncatedWebP",
-
-			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: stillWebP[:len(stillWebP)-8]},
-
-			expectErr: core.ErrPictureFormat,
+			expectErr: picture.ErrFormat,
 		},
 		{
 			name: "Error/NotSquare",
 
 			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: newJPEG(64, 32)},
 
-			expectErr: core.ErrPictureRatio,
+			expectErr: picture.ErrRatio,
 		},
 		{
 			name: "Error/TooLarge",
 
 			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: newJPEG(513, 513)},
 
-			expectErr: core.ErrPictureDimensions,
+			expectErr: picture.ErrDimensions,
 		},
 		{
 			name: "Error/Empty",

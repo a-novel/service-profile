@@ -9,6 +9,7 @@ import (
 	"github.com/a-novel-kit/golib/httpf"
 	"github.com/a-novel-kit/golib/logging"
 	"github.com/a-novel-kit/golib/otel"
+	"github.com/a-novel-kit/golib/picture"
 
 	"github.com/a-novel/service-profile/internal/core"
 )
@@ -22,7 +23,7 @@ type RestProfilePictureUpdateService interface {
 // answers 422, with its reason as the problem's reason tag. A body over the router's limit answers 413.
 var profilePictureUpdateErrors = httpf.ErrMap{
 	core.ErrInvalidRequest: http.StatusBadRequest,
-	core.ErrPictureRefused: http.StatusUnprocessableEntity,
+	picture.ErrRefused:     http.StatusUnprocessableEntity,
 }
 
 // RestProfilePictureUpdate is the HTTP handler for the update-picture endpoint. Its body is the
@@ -51,16 +52,16 @@ func (handler *RestProfilePictureUpdate) ServeHTTP(w http.ResponseWriter, r *htt
 	}
 
 	// The picture is decoded whole, so the body is read whole, within the router's limit.
-	picture, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		httpf.HandleError(ctx, handler.logger, w, span, httpf.ErrMap{nil: http.StatusBadRequest}, err)
 
 		return
 	}
 
-	profile, err := handler.service.Exec(ctx, &core.ProfilePictureUpdateRequest{UserID: userID, Picture: picture})
+	profile, err := handler.service.Exec(ctx, &core.ProfilePictureUpdateRequest{UserID: userID, Picture: body})
 
-	var refusal core.PictureRefusedError
+	var refusal picture.RefusedError
 	if errors.As(err, &refusal) {
 		err = httpf.WithTag(err, "reason", string(refusal))
 	}

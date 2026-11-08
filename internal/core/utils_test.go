@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"bytes"
+	_ "embed"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -25,6 +26,11 @@ var (
 	// coreProfile is daoProfile as the core returns it.
 	coreProfile = &core.Profile{ID: profileID, Username: lo.ToPtr("Jean Paul"), PictureVersion: &pictureVersion}
 )
+
+// stillWebP is a 16 px square that libwebp 1.6 encoded with cwebp -q 90.
+//
+//go:embed testdata/still.webp
+var stillWebP []byte
 
 // newImage returns an image of the given size, shaded so its encoding holds more than a header.
 func newImage(width, height int) image.Image {
