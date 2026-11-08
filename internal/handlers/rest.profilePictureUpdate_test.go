@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/a-novel-kit/golib/picture"
+
 	"github.com/a-novel/service-profile/internal/config"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/handlers"
@@ -22,7 +24,7 @@ func TestRestProfilePictureUpdate(t *testing.T) {
 
 	errFoo := errors.New("foo")
 
-	picture := []byte("picture")
+	data := []byte("picture")
 
 	testCases := []struct {
 		name string
@@ -55,7 +57,7 @@ func TestRestProfilePictureUpdate(t *testing.T) {
 			name: "Error/TooLarge",
 
 			caller:    &userID,
-			bodyLimit: int64(len(picture)) - 1,
+			bodyLimit: int64(len(data)) - 1,
 
 			expectStatus: http.StatusRequestEntityTooLarge,
 		},
@@ -64,7 +66,7 @@ func TestRestProfilePictureUpdate(t *testing.T) {
 
 			caller: &userID,
 
-			serviceMock: &serviceMock[*core.Profile]{err: core.ErrPictureRatio},
+			serviceMock: &serviceMock[*core.Profile]{err: picture.ErrRatio},
 
 			expectStatus: http.StatusUnprocessableEntity,
 			expectResponse: map[string]any{
@@ -102,13 +104,13 @@ func TestRestProfilePictureUpdate(t *testing.T) {
 
 			if testCase.serviceMock != nil {
 				service.EXPECT().
-					Exec(mock.Anything, &core.ProfilePictureUpdateRequest{UserID: userID, Picture: picture}).
+					Exec(mock.Anything, &core.ProfilePictureUpdateRequest{UserID: userID, Picture: data}).
 					Return(testCase.serviceMock.resp, testCase.serviceMock.err)
 			}
 
 			w := httptest.NewRecorder()
 
-			var body io.Reader = bytes.NewReader(picture)
+			var body io.Reader = bytes.NewReader(data)
 			if testCase.bodyLimit > 0 {
 				body = http.MaxBytesReader(w, io.NopCloser(body), testCase.bodyLimit)
 			}
