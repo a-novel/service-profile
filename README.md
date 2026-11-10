@@ -40,7 +40,7 @@ Pin every image to the same release tag. A production deployment runs `database`
 ```yaml
 services:
   postgres-profile:
-    image: ghcr.io/a-novel/service-profile/database:v1.0.3
+    image: ghcr.io/a-novel/service-profile/database:v1.1.0
     networks: [api]
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
@@ -58,7 +58,7 @@ services:
       retries: 10
 
   migrations-profile:
-    image: ghcr.io/a-novel/service-profile/jobs/migrations:v1.0.3
+    image: ghcr.io/a-novel/service-profile/jobs/migrations:v1.1.0
     depends_on:
       postgres-profile: { condition: service_healthy }
     environment:
@@ -71,7 +71,7 @@ services:
     networks: [api]
 
   service-profile:
-    image: ghcr.io/a-novel/service-profile/rest:v1.0.3
+    image: ghcr.io/a-novel/service-profile/rest:v1.1.0
     ports: ["${REST_PORT}:8080"] # the container always listens on 8080
     depends_on:
       postgres-profile: { condition: service_healthy }
@@ -219,7 +219,7 @@ The **standalone** images bundle a server with the migrations, which they apply 
 ```yaml
 services:
   postgres-profile:
-    image: ghcr.io/a-novel/service-profile/database:v1.0.3
+    image: ghcr.io/a-novel/service-profile/database:v1.1.0
     networks: [api]
     environment:
       POSTGRES_PASSWORD: postgres
@@ -235,7 +235,7 @@ services:
       retries: 10
 
   service-profile:
-    image: ghcr.io/a-novel/service-profile/standalone-rest:v1.0.3
+    image: ghcr.io/a-novel/service-profile/standalone-rest:v1.1.0
     ports: ["${REST_PORT}:8080"]
     depends_on:
       postgres-profile: { condition: service_healthy }
