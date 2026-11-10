@@ -12,6 +12,8 @@ export enum PictureRefusal {
   Ratio = "ratio",
   /** The picture's side is under 1 or over 512 pixels. */
   Dimensions = "dimensions",
+  /** The picture is over 256 KiB. */
+  Size = "size",
 }
 
 /** A user's public profile. It never names the user who owns it. */

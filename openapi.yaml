@@ -459,8 +459,8 @@ components:
               description: |
                 The rule the picture broke: `format` for bytes that are neither a still WebP nor a JPEG, or
                 do not decode whole; `ratio` for a picture that is not square; `dimensions` for a side
-                under 1 or over 512 pixels.
-              enum: [format, ratio, dimensions]
+                under 1 or over 512 pixels; `size` for a picture over 256 KiB.
+              enum: [format, ratio, dimensions, size]
     plannedDowntimeProblem:
       type: object
       description: |

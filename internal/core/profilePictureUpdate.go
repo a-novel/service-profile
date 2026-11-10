@@ -15,13 +15,23 @@ import (
 	"github.com/a-novel/service-profile/internal/dao"
 )
 
-// ProfilePictureSideMax caps the side of a picture, in pixels. The platform draws its crop 512 px wide
-// at most.
-const ProfilePictureSideMax = 512
+const (
+	// ProfilePictureSideMax caps each side of a picture, in pixels. The platform draws its crop 512 px wide
+	// at most.
+	ProfilePictureSideMax = 512
+	// ProfilePictureBytesMax caps an encoded picture, as the schema does.
+	ProfilePictureBytesMax = 256 << 10
+)
 
-// profilePictureRule is the rule a profile picture follows: a square, 1 to [ProfilePictureSideMax]
-// pixels wide.
-var profilePictureRule = picture.Rule{RatioWidth: 1, RatioHeight: 1, MaxWidth: ProfilePictureSideMax}
+// profilePictureRule is the rule a profile picture follows: a square, 1 to [ProfilePictureSideMax] pixels
+// on a side, of [ProfilePictureBytesMax] bytes at most.
+var profilePictureRule = picture.Rule{
+	RatioWidth:  1,
+	RatioHeight: 1,
+	MaxWidth:    ProfilePictureSideMax,
+	MaxHeight:   ProfilePictureSideMax,
+	MaxBytes:    ProfilePictureBytesMax,
+}
 
 // ProfilePictureUpdateDao writes the picture of a user's profile, and creates the profile on the
 // user's first write.
@@ -32,13 +42,13 @@ type ProfilePictureUpdateDao interface {
 // ProfilePictureUpdateRequest carries the caller's new picture.
 type ProfilePictureUpdateRequest struct {
 	UserID uuid.UUID `validate:"required"`
-	// Picture holds the encoded image, 256 KiB at most, as the schema caps it.
-	Picture []byte `validate:"required,max=262144"`
+	// Picture holds the encoded image.
+	Picture []byte `validate:"required"`
 }
 
 // ProfilePictureUpdate replaces the caller's picture. It accepts a still WebP or a JPEG that decodes
-// whole into a square of 1 to [ProfilePictureSideMax] pixels, and refuses any other picture with a
-// [picture.RefusedError].
+// whole into a square of 1 to [ProfilePictureSideMax] pixels and [ProfilePictureBytesMax] bytes at most,
+// and refuses any other picture with a [picture.RefusedError].
 type ProfilePictureUpdate struct {
 	dao ProfilePictureUpdateDao
 }

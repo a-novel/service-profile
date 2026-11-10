@@ -89,6 +89,13 @@ func TestProfilePictureUpdate(t *testing.T) {
 			expectErr: picture.ErrDimensions,
 		},
 		{
+			name: "Error/Bytes",
+
+			request: &core.ProfilePictureUpdateRequest{UserID: userID, Picture: make([]byte, core.ProfilePictureBytesMax+1)},
+
+			expectErr: picture.ErrSize,
+		},
+		{
 			name: "Error/Empty",
 
 			request: &core.ProfilePictureUpdateRequest{UserID: userID},
