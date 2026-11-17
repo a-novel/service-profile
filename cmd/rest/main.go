@@ -34,8 +34,6 @@ import (
 func main() {
 	cfg := config.AppPresetDefault
 
-	withServiceToken := lo.Must(newServiceTokenGate(cfg))
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -50,16 +48,36 @@ func main() {
 		defer cfg.Postgres.Close()
 	}
 
-	// =================================================================================================================
-	// CLIENTS
-	// =================================================================================================================
-
 	jsonKeysClient := lo.Must(servicejsonkeys.NewClient(
 		cfg.Dependencies.ServiceJSONKeys.Address(), cfg.Dependencies.ServiceJSONKeys.DialOptions()...,
 	))
 	defer jsonKeysClient.Close()
 
-	claimsVerifier := lo.Must(servicejsonkeys.NewClaimsVerifier[serviceauthentication.Claims](jsonKeysClient))
+	router := lo.Must(newRouter(cfg, jsonKeysClient))
+
+	log.Println("Starting REST server on :" + strconv.Itoa(cfg.Rest.Port))
+
+	lo.Must0(httpf.ListenAndServe(ctx, cfg.Rest, router))
+}
+
+// newRouter builds the API behind the service-token gate, which wraps the whole router: a request
+// reaches a route only with a token cfg accepts, and the mux reads the client IP header and counts
+// rate limits for verified callers alone. The liveness route stays open to the kubelet. The gate
+// refuses an empty issuer unless cfg opts a local stack out, so the server never starts open by
+// mistake.
+func newRouter(cfg config.App, jsonKeysClient servicejsonkeys.Client) (http.Handler, error) {
+	withServiceToken, err := httpf.ServiceTokenGate(
+		cfg.ServiceToken, httpf.NewPoolClient(httpf.PoolOptions{}), cfg.Logger, cfg.Rest.Liveness,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("service token gate: %w", err)
+	}
+
+	claimsVerifier, err := servicejsonkeys.NewClaimsVerifier[serviceauthentication.Claims](jsonKeysClient)
+	if err != nil {
+		return nil, fmt.Errorf("claims verifier: %w", err)
+	}
+
 	withAuth := serviceauthentication.NewAuthHandler(claimsVerifier, cfg.Permissions, cfg.Logger)
 
 	// =================================================================================================================
@@ -114,25 +132,5 @@ func main() {
 		withAuth(api, config.PermissionProfileWrite).Delete("/profile/picture", handlerProfilePictureDelete.ServeHTTP)
 	})
 
-	// =================================================================================================================
-	// RUN
-	// =================================================================================================================
-
-	log.Println("Starting REST server on :" + strconv.Itoa(cfg.Rest.Port))
-
-	lo.Must0(httpf.ListenAndServe(ctx, cfg.Rest, withServiceToken(router)))
-}
-
-// newServiceTokenGate returns the middleware that wraps the whole router, so a request reaches a route
-// only with a service token cfg accepts. The liveness route stays open to the kubelet. The gate refuses
-// an empty issuer unless cfg opts a local stack out, so the server never starts open by mistake.
-func newServiceTokenGate(cfg config.App) (func(http.Handler) http.Handler, error) {
-	gate, err := httpf.ServiceTokenGate(
-		cfg.ServiceToken, httpf.NewPoolClient(httpf.PoolOptions{}), cfg.Logger, cfg.Rest.Liveness,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("service token gate: %w", err)
-	}
-
-	return gate, nil
+	return withServiceToken(router), nil
 }
