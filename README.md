@@ -208,7 +208,7 @@ Every resource helper takes an access token from the authentication service. A r
 import { profileGet, profileUsernameUpdate } from "@a-novel/service-profile-rest";
 
 const mine = await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
-const profile = await profileGet(api, anonymousToken, mine.id);
+const profile = await profileGet(api, anonymousToken, { id: mine.id });
 ```
 
 ## Running locally
