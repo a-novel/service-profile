@@ -110,6 +110,8 @@ paths:
           $ref: "#/components/responses/forbidden"
         "404":
           $ref: "#/components/responses/notFound"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
         "429":
           $ref: "#/components/responses/tooManyRequests"
         "503":
@@ -145,6 +147,8 @@ paths:
           $ref: "#/components/responses/forbidden"
         "413":
           $ref: "#/components/responses/contentTooLarge"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
         "429":
           $ref: "#/components/responses/tooManyRequests"
         "503":
@@ -180,6 +184,8 @@ paths:
           $ref: "#/components/responses/forbidden"
         "404":
           $ref: "#/components/responses/notFound"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
         "429":
           $ref: "#/components/responses/tooManyRequests"
         "503":
@@ -194,7 +200,7 @@ paths:
         Replaces the signed-in caller's picture, and creates the caller's profile on the first write. The body
         is the encoded image, 256 KiB at most. The server recognizes its format from the bytes, whatever
         `Content-Type` says, and accepts a still WebP or a JPEG that decodes whole into a square of 1 to
-        512 pixels. It refuses any other picture with 422, naming the rule it broke.
+        512 pixels. It refuses any other picture, an empty body included, with 422 naming the rule it broke.
       tags: [profile]
       requestBody:
         required: true
@@ -347,18 +353,21 @@ components:
             const: no-cache
 
     badRequest:
-      description: |
-        The request could not be parsed, or failed validation. A field that breaks its rule answers a
-        problem naming each invalid field and the rule it broke. A malformed ID or JSON body answers the
-        status text alone.
+      description: The request could not be parsed, as an ID that is not a UUID or a body that is not JSON.
       content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/invalidRequest"
         text/plain:
           schema:
             type: string
             examples: [Bad Request]
+
+    unprocessableEntity:
+      description: |
+        The request parsed, but failed validation, as a missing ID or a refused username. The body names each
+        invalid field and the rule it broke.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/invalidRequest"
 
     invalidToken:
       description: |
@@ -410,11 +419,11 @@ components:
         title:
           type: string
           description: The HTTP status text.
-          examples: [Bad Request]
+          examples: [Unprocessable Entity]
         status:
           type: integer
           description: The HTTP status code.
-          const: 400
+          const: 422
         tags:
           type: object
           description: Public details about the failure. Clients ignore tags they do not know.

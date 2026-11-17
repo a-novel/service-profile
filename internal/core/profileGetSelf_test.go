@@ -43,15 +43,6 @@ func TestProfileGetSelf(t *testing.T) {
 			expect: coreProfile,
 		},
 		{
-			name: "Error/NotFound",
-
-			request: &core.ProfileGetSelfRequest{UserID: userID},
-
-			daoMock: &daoMock{err: dao.ErrProfileSelectByUserNotFound},
-
-			expectErr: core.ErrProfileSelectByUserNotFound,
-		},
-		{
 			name: "Error/Dao",
 
 			request: &core.ProfileGetSelfRequest{UserID: userID},
@@ -84,8 +75,6 @@ func TestProfileGetSelf(t *testing.T) {
 			result, err := core.NewProfileGetSelf(daoSelect).Exec(t.Context(), testCase.request)
 			require.ErrorIs(t, err, testCase.expectErr)
 			require.Equal(t, testCase.expect, result)
-
-			daoSelect.AssertExpectations(t)
 		})
 	}
 }

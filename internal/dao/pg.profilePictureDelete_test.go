@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/a-novel-kit/golib/postgres/postgrestest"
@@ -33,12 +32,12 @@ func TestPgProfilePictureDelete(t *testing.T) {
 
 			expect: &dao.Profile{
 				ID:       profileID,
-				Username: lo.ToPtr("Jean Paul"),
+				Username: new("Jean Paul"),
 			},
 			expectRow: &profileRow{
 				ID:        profileID,
 				UserID:    userID,
-				Username:  lo.ToPtr("Jean Paul"),
+				Username:  new("Jean Paul"),
 				CreatedAt: createdAt,
 				UpdatedAt: now,
 			},
@@ -50,12 +49,12 @@ func TestPgProfilePictureDelete(t *testing.T) {
 
 			expect: &dao.Profile{
 				ID:       otherProfileID,
-				Username: lo.ToPtr("Marie"),
+				Username: new("Marie"),
 			},
 			expectRow: &profileRow{
 				ID:        otherProfileID,
 				UserID:    otherUserID,
-				Username:  lo.ToPtr("Marie"),
+				Username:  new("Marie"),
 				CreatedAt: createdAt,
 				UpdatedAt: now,
 			},
@@ -65,7 +64,7 @@ func TestPgProfilePictureDelete(t *testing.T) {
 
 			request: &dao.ProfilePictureDeleteRequest{UserID: newUserID, Now: now},
 
-			expectErr: dao.ErrProfilePictureDeleteNotFound,
+			expectErr: dao.ErrProfileNotFound,
 		},
 	}
 

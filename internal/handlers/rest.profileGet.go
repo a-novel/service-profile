@@ -20,8 +20,8 @@ type RestProfileGetService interface {
 
 // profileGetErrors maps a refused profile read to its status.
 var profileGetErrors = httpf.ErrMap{
-	core.ErrInvalidRequest:        http.StatusBadRequest,
-	core.ErrProfileSelectNotFound: http.StatusNotFound,
+	core.ErrInvalidRequest:  http.StatusUnprocessableEntity,
+	core.ErrProfileNotFound: http.StatusNotFound,
 }
 
 // RestProfileGetRequest is the query parameters the get-profile endpoint accepts.

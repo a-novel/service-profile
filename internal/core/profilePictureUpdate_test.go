@@ -141,8 +141,6 @@ func TestProfilePictureUpdate(t *testing.T) {
 			result, err := core.NewProfilePictureUpdate(daoUpsert).Exec(t.Context(), testCase.request)
 			require.ErrorIs(t, err, testCase.expectErr)
 			require.Equal(t, testCase.expect, result)
-
-			daoUpsert.AssertExpectations(t)
 		})
 	}
 }

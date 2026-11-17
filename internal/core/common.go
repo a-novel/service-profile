@@ -5,13 +5,9 @@ import (
 )
 
 var (
-	// ErrProfileSelectNotFound is returned when no profile has the requested ID.
-	ErrProfileSelectNotFound = dao.ErrProfileSelectNotFound
-	// ErrProfileSelectByUserNotFound is returned when the caller holds no profile yet.
-	ErrProfileSelectByUserNotFound = dao.ErrProfileSelectByUserNotFound
-	// ErrProfilePictureDeleteNotFound is returned when the caller holds no profile yet.
-	ErrProfilePictureDeleteNotFound = dao.ErrProfilePictureDeleteNotFound
-	// ErrProfilePictureSelectNotFound is returned when no profile has the requested ID, or the profile
-	// holds no picture.
-	ErrProfilePictureSelectNotFound = dao.ErrProfilePictureSelectNotFound
+	// ErrProfileNotFound is returned when no profile has the requested ID, or the caller holds none yet.
+	ErrProfileNotFound = dao.ErrProfileNotFound
+	// ErrProfilePictureNotFound is returned when no profile has the requested ID, or the profile holds
+	// no picture.
+	ErrProfilePictureNotFound = dao.ErrProfilePictureNotFound
 )

@@ -22,8 +22,8 @@ type RestProfilePictureGetService interface {
 
 // profilePictureGetErrors maps a refused picture read to its status.
 var profilePictureGetErrors = httpf.ErrMap{
-	core.ErrInvalidRequest:               http.StatusBadRequest,
-	core.ErrProfilePictureSelectNotFound: http.StatusNotFound,
+	core.ErrInvalidRequest:         http.StatusUnprocessableEntity,
+	core.ErrProfilePictureNotFound: http.StatusNotFound,
 }
 
 // RestProfilePictureGetRequest is the query parameters the get-picture endpoint accepts.

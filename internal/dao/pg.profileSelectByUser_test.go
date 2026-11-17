@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/a-novel-kit/golib/postgres/postgrestest"
@@ -32,7 +31,7 @@ func TestPgProfileSelectByUser(t *testing.T) {
 
 			expect: &dao.Profile{
 				ID:               profileID,
-				Username:         lo.ToPtr("Jean Paul"),
+				Username:         new("Jean Paul"),
 				PictureUpdatedAt: &updatedAt,
 			},
 		},
@@ -41,7 +40,7 @@ func TestPgProfileSelectByUser(t *testing.T) {
 
 			request: &dao.ProfileSelectByUserRequest{UserID: newUserID},
 
-			expectErr: dao.ErrProfileSelectByUserNotFound,
+			expectErr: dao.ErrProfileNotFound,
 		},
 	}
 

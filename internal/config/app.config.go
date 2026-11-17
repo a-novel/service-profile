@@ -16,44 +16,44 @@ import (
 // Main holds the top-level application settings.
 type Main struct {
 	// Name of the application, as it appears in logs and tracing.
-	Name string `json:"name" yaml:"name"`
+	Name string
 	// DowntimeStart is when a planned downtime starts; nil when none is planned. From then until
 	// it is removed, the service refuses work and leaves its database alone.
-	DowntimeStart *time.Time `json:"downtimeStart" yaml:"downtimeStart"`
+	DowntimeStart *time.Time
 }
 
 // Dependencies configures how the service reaches the services it calls.
 type Dependencies struct {
 	// ServiceJSONKeysHost is the hostname of the JSON Keys service, which verifies access tokens.
-	ServiceJSONKeysHost string `json:"serviceJSONKeysHost" yaml:"serviceJSONKeysHost"`
+	ServiceJSONKeysHost string
 	// ServiceJSONKeysPort is the gRPC port of the JSON Keys service.
-	ServiceJSONKeysPort int `json:"serviceJSONKeysPort" yaml:"serviceJSONKeysPort"`
+	ServiceJSONKeysPort int
 	// ServiceJSONKeysCredentials authenticates the calls to the JSON Keys service.
-	ServiceJSONKeysCredentials grpcf.CredentialsProvider `json:"-" yaml:"-"`
+	ServiceJSONKeysCredentials grpcf.CredentialsProvider
 }
 
 // App is the complete configuration the service reads at startup.
 type App struct {
 	// App holds the top-level application settings.
-	App Main `json:"app" yaml:"app"`
+	App Main
 	// Dependencies configures the services the service calls.
-	Dependencies Dependencies `json:"dependencies" yaml:"dependencies"`
+	Dependencies Dependencies
 	// Permissions maps each role to the permissions it grants.
-	Permissions serviceauthentication.Permissions `json:"permissions" yaml:"permissions"`
+	Permissions serviceauthentication.Permissions
 	// Rest configures the REST server.
-	Rest httpf.ServerConfig `json:"rest" yaml:"rest"`
+	Rest httpf.ServerConfig
 	// ServiceToken names the service tokens the REST server accepts.
-	ServiceToken servicetoken.Config `json:"serviceToken" yaml:"serviceToken"`
+	ServiceToken servicetoken.Config
 	// ServiceIssuerOptional lets the REST server start with no ServiceToken issuer, and take every
 	// request without a service token. Without it, a ServiceToken with no issuer refuses to start.
-	ServiceIssuerOptional bool `json:"serviceIssuerOptional" yaml:"serviceIssuerOptional"`
+	ServiceIssuerOptional bool
 
 	// Otel configures the OpenTelemetry exporter.
-	Otel otel.Config `json:"otel" yaml:"otel"`
+	Otel otel.Config
 	// Logger is the application logger the REST handlers report their errors to.
-	Logger logging.Log `json:"logger" yaml:"logger"`
+	Logger logging.Log
 	// RestLogger configures the REST request logging middleware.
-	RestLogger logging.HTTPConfig `json:"restLogger" yaml:"restLogger"`
+	RestLogger logging.HTTPConfig
 	// Postgres configures the PostgreSQL connection.
-	Postgres postgres.Config `json:"postgres" yaml:"postgres"`
+	Postgres postgres.Config
 }

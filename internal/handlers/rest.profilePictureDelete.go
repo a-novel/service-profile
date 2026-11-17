@@ -19,8 +19,8 @@ type RestProfilePictureDeleteService interface {
 // profilePictureDeleteErrors maps a refused picture removal to its status. A caller who never wrote
 // holds no profile.
 var profilePictureDeleteErrors = httpf.ErrMap{
-	core.ErrInvalidRequest:               http.StatusBadRequest,
-	core.ErrProfilePictureDeleteNotFound: http.StatusNotFound,
+	core.ErrInvalidRequest:  http.StatusUnprocessableEntity,
+	core.ErrProfileNotFound: http.StatusNotFound,
 }
 
 // RestProfilePictureDelete is the HTTP handler for the delete-picture endpoint. It responds with the

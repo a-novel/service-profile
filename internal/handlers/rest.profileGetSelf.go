@@ -19,8 +19,8 @@ type RestProfileGetSelfService interface {
 // profileGetSelfErrors maps a refused read of the caller's profile to its status. A caller who never
 // wrote holds no profile.
 var profileGetSelfErrors = httpf.ErrMap{
-	core.ErrInvalidRequest:              http.StatusBadRequest,
-	core.ErrProfileSelectByUserNotFound: http.StatusNotFound,
+	core.ErrInvalidRequest:  http.StatusUnprocessableEntity,
+	core.ErrProfileNotFound: http.StatusNotFound,
 }
 
 // RestProfileGetSelf is the HTTP handler for the get-own-profile endpoint. It responds with the

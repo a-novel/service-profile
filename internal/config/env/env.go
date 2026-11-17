@@ -1,6 +1,7 @@
 package env
 
 import (
+	"cmp"
 	"os"
 	"strconv"
 	"time"
@@ -50,11 +51,6 @@ const (
 )
 
 var (
-	// PostgresDSN is the legacy URL used when PostgresHost is empty, formatted as
-	//	postgres://<user>:<password>@<host>:<port>/<database>
-	//
-	// Configure the discrete PostgreSQL fields for new deployments.
-	PostgresDSN = getEnv("POSTGRES_DSN")
 	// PostgresHost is the PostgreSQL server hostname or IP address.
 	PostgresHost = getEnv("POSTGRES_HOST")
 	// PostgresPort is the PostgreSQL server port.
@@ -74,7 +70,7 @@ var (
 	PostgresMaxIdleConns = config.LoadEnv(getEnv("POSTGRES_MAX_IDLE_CONNS"), PostgresMaxIdleConnsDefault, strconv.Atoi)
 
 	// ServiceJSONKeysHost is the hostname of the JSON Keys service, without scheme or port.
-	ServiceJSONKeysHost = config.LoadEnv(getEnv("SERVICE_JSON_KEYS_HOST"), ServiceJSONKeysHostDefault, config.StringParser)
+	ServiceJSONKeysHost = cmp.Or(getEnv("SERVICE_JSON_KEYS_HOST"), ServiceJSONKeysHostDefault)
 	// ServiceJSONKeysPort is the gRPC port of the JSON Keys service.
 	ServiceJSONKeysPort = config.LoadEnv(getEnv("SERVICE_JSON_KEYS_PORT"), ServiceJSONKeysPortDefault, strconv.Atoi)
 	// ServiceJSONKeysTokenPath is the file the kubelet projects this service's token for JSON Keys into.
@@ -86,7 +82,7 @@ var (
 	ServiceJSONKeysTLS = config.LoadEnv(getEnv("SERVICE_JSON_KEYS_TLS"), false, strconv.ParseBool)
 
 	// AppName is the name of the application, as it appears in logs and tracing.
-	AppName = config.LoadEnv(getEnv("APP_NAME"), AppNameDefault, config.StringParser)
+	AppName = cmp.Or(getEnv("APP_NAME"), AppNameDefault)
 	// Otel enables OpenTelemetry tracing.
 	Otel = config.LoadEnv(getEnv("OTEL"), false, strconv.ParseBool)
 

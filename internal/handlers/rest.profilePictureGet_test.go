@@ -64,11 +64,20 @@ func TestRestProfilePictureGet(t *testing.T) {
 			expectStatus: http.StatusBadRequest,
 		},
 		{
+			name: "Error/InvalidRequest",
+
+			target: target,
+
+			serviceMock: &serviceMock[*core.ProfilePicture]{err: core.ErrInvalidRequest},
+
+			expectStatus: http.StatusUnprocessableEntity,
+		},
+		{
 			name: "Error/NotFound",
 
 			target: target,
 
-			serviceMock: &serviceMock[*core.ProfilePicture]{err: core.ErrProfilePictureSelectNotFound},
+			serviceMock: &serviceMock[*core.ProfilePicture]{err: core.ErrProfilePictureNotFound},
 
 			expectStatus: http.StatusNotFound,
 		},

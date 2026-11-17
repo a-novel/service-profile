@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -42,7 +41,7 @@ func TestProfileUsernameUpdate(t *testing.T) {
 
 			request: &core.ProfileUsernameUpdateRequest{UserID: userID, Username: "  Jean Paul  "},
 
-			daoMock: &daoMock{username: lo.ToPtr("Jean Paul"), resp: daoProfile},
+			daoMock: &daoMock{username: new("Jean Paul"), resp: daoProfile},
 
 			expect: coreProfile,
 		},
@@ -75,7 +74,7 @@ func TestProfileUsernameUpdate(t *testing.T) {
 
 			request: &core.ProfileUsernameUpdateRequest{UserID: userID, Username: "Jean Paul"},
 
-			daoMock: &daoMock{username: lo.ToPtr("Jean Paul"), err: errFoo},
+			daoMock: &daoMock{username: new("Jean Paul"), err: errFoo},
 
 			expectErr: errFoo,
 		},
@@ -101,8 +100,6 @@ func TestProfileUsernameUpdate(t *testing.T) {
 			result, err := core.NewProfileUsernameUpdate(daoUpsert).Exec(t.Context(), testCase.request)
 			require.ErrorIs(t, err, testCase.expectErr)
 			require.Equal(t, testCase.expect, result)
-
-			daoUpsert.AssertExpectations(t)
 		})
 	}
 }

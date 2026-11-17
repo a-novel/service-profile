@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/a-novel-kit/golib/postgres/postgrestest"
@@ -33,18 +32,18 @@ func TestPgProfileUsernameUpsert(t *testing.T) {
 			request: &dao.ProfileUsernameUpsertRequest{
 				ID:       newProfileID,
 				UserID:   newUserID,
-				Username: lo.ToPtr("Jean Paul"),
+				Username: new("Jean Paul"),
 				Now:      now,
 			},
 
 			expect: &dao.Profile{
 				ID:       newProfileID,
-				Username: lo.ToPtr("Jean Paul"),
+				Username: new("Jean Paul"),
 			},
 			expectRow: &profileRow{
 				ID:        newProfileID,
 				UserID:    newUserID,
-				Username:  lo.ToPtr("Jean Paul"),
+				Username:  new("Jean Paul"),
 				CreatedAt: now,
 				UpdatedAt: now,
 			},
@@ -56,21 +55,21 @@ func TestPgProfileUsernameUpsert(t *testing.T) {
 			request: &dao.ProfileUsernameUpsertRequest{
 				ID:       newProfileID,
 				UserID:   userID,
-				Username: lo.ToPtr("Marie Curie"),
+				Username: new("Marie Curie"),
 				Now:      now,
 			},
 
 			expect: &dao.Profile{
 				ID:               profileID,
-				Username:         lo.ToPtr("Marie Curie"),
+				Username:         new("Marie Curie"),
 				PictureUpdatedAt: &updatedAt,
 			},
 			expectRow: &profileRow{
 				ID:               profileID,
 				UserID:           userID,
-				Username:         lo.ToPtr("Marie Curie"),
+				Username:         new("Marie Curie"),
 				Picture:          picture,
-				PictureType:      lo.ToPtr("image/webp"),
+				PictureType:      new("image/webp"),
 				PictureUpdatedAt: &updatedAt,
 				CreatedAt:        createdAt,
 				UpdatedAt:        now,
@@ -90,7 +89,7 @@ func TestPgProfileUsernameUpsert(t *testing.T) {
 				ID:               profileID,
 				UserID:           userID,
 				Picture:          picture,
-				PictureType:      lo.ToPtr("image/webp"),
+				PictureType:      new("image/webp"),
 				PictureUpdatedAt: &updatedAt,
 				CreatedAt:        createdAt,
 				UpdatedAt:        now,
@@ -102,7 +101,7 @@ func TestPgProfileUsernameUpsert(t *testing.T) {
 			request: &dao.ProfileUsernameUpsertRequest{
 				ID:       newProfileID,
 				UserID:   newUserID,
-				Username: lo.ToPtr(""),
+				Username: new(""),
 				Now:      now,
 			},
 
@@ -114,7 +113,7 @@ func TestPgProfileUsernameUpsert(t *testing.T) {
 			request: &dao.ProfileUsernameUpsertRequest{
 				ID:       newProfileID,
 				UserID:   newUserID,
-				Username: lo.ToPtr(strings.Repeat("a", 2049)),
+				Username: new(strings.Repeat("a", 2049)),
 				Now:      now,
 			},
 

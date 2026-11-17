@@ -16,17 +16,14 @@ import (
 //go:embed pg.profilePictureSelect.sql
 var profilePictureSelectQuery string
 
-// ErrProfilePictureSelectNotFound is returned by [PgProfilePictureSelect.Exec] when no profile has the
-// requested ID, or the profile has no picture.
-var ErrProfilePictureSelectNotFound = errors.New("profile picture not found")
-
 // ProfilePictureSelectRequest is the input to [PgProfilePictureSelect.Exec].
 type ProfilePictureSelectRequest struct {
 	// ID is the ID of the profile.
 	ID uuid.UUID
 }
 
-// PgProfilePictureSelect reads the picture of a profile.
+// PgProfilePictureSelect reads the picture of a profile. It returns [ErrProfilePictureNotFound] when no
+// profile has the ID, or the profile holds no picture.
 type PgProfilePictureSelect struct{}
 
 func NewPgProfilePictureSelect() *PgProfilePictureSelect {
@@ -48,7 +45,7 @@ func (dao *PgProfilePictureSelect) Exec(
 
 	err = db.NewRaw(profilePictureSelectQuery, request.ID).Scan(ctx, &entity)
 	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.Join(err, ErrProfilePictureSelectNotFound)
+		err = errors.Join(err, ErrProfilePictureNotFound)
 	}
 
 	if err != nil {

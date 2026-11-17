@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/a-novel-kit/golib/postgres/postgrestest"
@@ -47,7 +46,7 @@ func TestPgProfilePictureUpsert(t *testing.T) {
 				ID:               newProfileID,
 				UserID:           newUserID,
 				Picture:          newPicture,
-				PictureType:      lo.ToPtr("image/jpeg"),
+				PictureType:      new("image/jpeg"),
 				PictureUpdatedAt: &now,
 				CreatedAt:        now,
 				UpdatedAt:        now,
@@ -67,15 +66,15 @@ func TestPgProfilePictureUpsert(t *testing.T) {
 
 			expect: &dao.Profile{
 				ID:               otherProfileID,
-				Username:         lo.ToPtr("Marie"),
+				Username:         new("Marie"),
 				PictureUpdatedAt: &now,
 			},
 			expectRow: &profileRow{
 				ID:               otherProfileID,
 				UserID:           otherUserID,
-				Username:         lo.ToPtr("Marie"),
+				Username:         new("Marie"),
 				Picture:          newPicture,
-				PictureType:      lo.ToPtr("image/webp"),
+				PictureType:      new("image/webp"),
 				PictureUpdatedAt: &now,
 				CreatedAt:        createdAt,
 				UpdatedAt:        now,

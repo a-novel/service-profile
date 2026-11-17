@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/dao"
@@ -22,9 +21,9 @@ var (
 	pictureVersion = time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	// daoProfile is the profile the DAO mocks return.
-	daoProfile = &dao.Profile{ID: profileID, Username: lo.ToPtr("Jean Paul"), PictureUpdatedAt: &pictureVersion}
+	daoProfile = &dao.Profile{ID: profileID, Username: new("Jean Paul"), PictureUpdatedAt: &pictureVersion}
 	// coreProfile is daoProfile as the core returns it.
-	coreProfile = &core.Profile{ID: profileID, Username: lo.ToPtr("Jean Paul"), PictureVersion: &pictureVersion}
+	coreProfile = &core.Profile{ID: profileID, Username: new("Jean Paul"), PictureVersion: &pictureVersion}
 )
 
 // stillWebP is a 16 px square that libwebp 1.6 encoded with cwebp -q 90.

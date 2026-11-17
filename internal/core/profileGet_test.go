@@ -43,13 +43,14 @@ func TestProfileGet(t *testing.T) {
 			expect: coreProfile,
 		},
 		{
+			// The core re-exports the DAO's sentinel, so a handler maps the one name.
 			name: "Error/NotFound",
 
 			request: &core.ProfileGetRequest{ID: profileID},
 
-			daoMock: &daoMock{err: dao.ErrProfileSelectNotFound},
+			daoMock: &daoMock{err: dao.ErrProfileNotFound},
 
-			expectErr: core.ErrProfileSelectNotFound,
+			expectErr: core.ErrProfileNotFound,
 		},
 		{
 			name: "Error/Dao",
@@ -84,8 +85,6 @@ func TestProfileGet(t *testing.T) {
 			result, err := core.NewProfileGet(daoSelect).Exec(t.Context(), testCase.request)
 			require.ErrorIs(t, err, testCase.expectErr)
 			require.Equal(t, testCase.expect, result)
-
-			daoSelect.AssertExpectations(t)
 		})
 	}
 }

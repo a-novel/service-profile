@@ -5,5 +5,5 @@ import (
 )
 
 // PostgresPreset is the PostgreSQL configuration the integration tests connect with. It aliases the
-// production preset, so tests read the same discrete settings or DSN.
+// production preset, so tests read the same POSTGRES_* settings.
 var PostgresPreset = config.PostgresPresetDefault
