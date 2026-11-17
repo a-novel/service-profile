@@ -46,9 +46,9 @@ var AppPresetDefault = App{
 		DowntimeStart: env.DowntimeStart,
 	},
 	Dependencies: Dependencies{
-		ServiceJsonKeysHost:        env.ServiceJsonKeysHost,
-		ServiceJsonKeysPort:        env.ServiceJsonKeysPort,
-		ServiceJsonKeysCredentials: newCredentials(env.ServiceJsonKeysTokenPath, env.ServiceJsonKeysTLS),
+		ServiceJSONKeysHost:        env.ServiceJSONKeysHost,
+		ServiceJSONKeysPort:        env.ServiceJSONKeysPort,
+		ServiceJSONKeysCredentials: newCredentials(env.ServiceJSONKeysTokenPath, env.ServiceJSONKeysTLS),
 	},
 	Permissions: PermissionsConfigDefault,
 	Rest:        env.Rest,

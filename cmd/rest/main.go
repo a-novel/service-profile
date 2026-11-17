@@ -64,8 +64,8 @@ func main() {
 	// =================================================================================================================
 
 	jsonKeysClient := lo.Must(servicejsonkeys.NewClient(
-		net.JoinHostPort(cfg.Dependencies.ServiceJsonKeysHost, strconv.Itoa(cfg.Dependencies.ServiceJsonKeysPort)),
-		lo.Must(cfg.Dependencies.ServiceJsonKeysCredentials.Options(ctx))...,
+		net.JoinHostPort(cfg.Dependencies.ServiceJSONKeysHost, strconv.Itoa(cfg.Dependencies.ServiceJSONKeysPort)),
+		lo.Must(cfg.Dependencies.ServiceJSONKeysCredentials.Options(ctx))...,
 	))
 	defer jsonKeysClient.Close()
 

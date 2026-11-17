@@ -39,8 +39,8 @@ func NewRestHealthStatus(err error) *RestHealthStatus {
 	}
 }
 
-// RestHealthApiJsonKeys is the JSON Keys client surface the health check probes.
-type RestHealthApiJsonKeys interface {
+// RestHealthAPIJSONKeys is the JSON Keys client surface the health check probes.
+type RestHealthAPIJSONKeys interface {
 	Status(
 		ctx context.Context,
 		req *servicejsonkeys.StatusRequest,
@@ -52,11 +52,11 @@ type RestHealthApiJsonKeys interface {
 // backing dependency and reports their individual status, with HTTP 503 when any
 // probe fails.
 type RestHealth struct {
-	apiJsonKeys RestHealthApiJsonKeys
+	apiJSONKeys RestHealthAPIJSONKeys
 }
 
-func NewRestHealth(apiJsonKeys RestHealthApiJsonKeys) *RestHealth {
-	return &RestHealth{apiJsonKeys: apiJsonKeys}
+func NewRestHealth(apiJSONKeys RestHealthAPIJSONKeys) *RestHealth {
+	return &RestHealth{apiJSONKeys: apiJSONKeys}
 }
 
 func (handler *RestHealth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func (handler *RestHealth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	report["client:postgres"] = NewRestHealthStatus(err)
 
-	err = handler.reportJsonKeys(ctx)
+	err = handler.reportJSONKeys(ctx)
 	if err != nil {
 		_ = otel.ReportError(span, err)
 		statusCode = http.StatusServiceUnavailable
@@ -97,13 +97,13 @@ func (handler *RestHealth) reportPostgres(ctx context.Context) error {
 	return nil
 }
 
-func (handler *RestHealth) reportJsonKeys(ctx context.Context) error {
-	ctx, span := otel.Tracer().Start(ctx, "rest.Health(reportJsonKeys)")
+func (handler *RestHealth) reportJSONKeys(ctx context.Context) error {
+	ctx, span := otel.Tracer().Start(ctx, "rest.Health(reportJSONKeys)")
 	defer span.End()
 
 	// JSON Keys fails Status with Unavailable when one of its own dependencies is down, so its
 	// success is the whole verdict.
-	_, err := handler.apiJsonKeys.Status(ctx, &servicejsonkeys.StatusRequest{})
+	_, err := handler.apiJSONKeys.Status(ctx, &servicejsonkeys.StatusRequest{})
 	if err != nil {
 		return otel.ReportError(span, err)
 	}
