@@ -383,8 +383,10 @@ jobs:
   # The jobs below run on a release tag only. Required-check discovery skips a job whose `if` holds
   # `github.ref_type == 'tag'`, since it never reports on a pull request.
 
-  # Publish the JS client from the checked-out release tag.
+  # Publish the JS client from the checked-out release tag, once the client suite passed against the
+  # tag's standalone image; deploy and archive wait for this job, so for the suite too.
   publish-js:
+    needs: [test-pkg-js]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
