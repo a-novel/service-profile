@@ -42,8 +42,8 @@
   },
   "devDependencies": {
     "@a-novel-kit/nodelib-browser": "^2.13.0",
-    "@a-novel-kit/nodelib-config": "^2.0.0",
-    "@a-novel-kit/nodelib-test": "^2.0.0",
+    "@a-novel-kit/nodelib-config": "^2.13.0",
+    "@a-novel-kit/nodelib-test": "^2.13.0",
     "@a-novel/service-authentication-rest": "^2.18.4",
     "@a-novel/service-profile-rest": "workspace:*",
     "@eslint/js": "^10.0.1",
