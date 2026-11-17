@@ -8,10 +8,6 @@
   },
   "license": "RPL-1.5",
   "type": "module",
-  "devDependencies": {
-    "@a-novel/service-authentication-rest": "^2.18.4",
-    "@a-novel/service-profile-rest": "workspace:*"
-  },
   "engines": {
     "node": ">=23.11.0",
     "npm": ">=10.9.2"
