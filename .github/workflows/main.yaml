@@ -1,11 +1,13 @@
 name: main
 
 on:
+  # A release tag runs this workflow too: the build jobs build and push the release's images as pull
+  # requests build them, and the tag-only jobs at the end publish and deploy the release.
   push:
-    tags-ignore:
-      - "**"
     branches:
       - master
+    tags:
+      - "v*"
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
   merge_group:
@@ -219,6 +221,10 @@ jobs:
         with:
           file: builds/database.Dockerfile
           image_name: ${{ github.repository }}/database
+          # Infra tells a real database change from a release by digest: an unchanged image keeps it.
+          # A release builds cold.
+          cache: ${{ github.ref_type == 'tag' && 'false' || 'true' }}
+          reproducible: "true"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           run_args: -e POSTGRES_PASSWORD=postgres
 
@@ -373,3 +379,66 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # The jobs below run on a release tag only. Required-check discovery skips a job whose `if` holds
+  # `github.ref_type == 'tag'`, since it never reports on a pull request.
+
+  # Publish the JS client from the checked-out release tag, once the client suite passed against the
+  # tag's standalone image; deploy and archive wait for this job, so for the suite too.
+  publish-js:
+    needs: [test-pkg-js]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - uses: a-novel-kit/workflows/publish-actions/npm@v1.87.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Infra pins the published images in one pull request, which deploys the release once it merges.
+  deploy:
+    needs:
+      - build-database
+      - build-migrations
+      - build-rest
+      - build-standalone-rest
+      - publish-js
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    # The Agent key is a secret of the governance environment, which no feature branch opens.
+    environment:
+      name: governance
+      deployment: false
+    permissions: {}
+    steps:
+      - uses: a-novel-kit/workflows/publish-actions/deploy-release@v1.87.0
+        with:
+          client_id: ${{ vars.AGENT_BOT_CLIENT_ID }}
+          app_private_key: ${{ secrets.AGENT_BOT_PRIVATE_KEY }}
+          version: ${{ github.ref_name }}
+
+  # Once everything ships, the job clears this repo's awaiting-release board items.
+  archive:
+    needs:
+      - build-database
+      - build-migrations
+      - build-rest
+      - build-standalone-rest
+      - publish-js
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    # The Agent key is a secret of the governance environment, which no feature branch opens.
+    environment:
+      name: governance
+      deployment: false
+    permissions:
+      contents: read
+    steps:
+      - uses: a-novel-kit/workflows/generic-actions/archive-board-items@v1.87.0
+        with:
+          client_id: ${{ vars.AGENT_BOT_CLIENT_ID }}
+          app_private_key: ${{ secrets.AGENT_BOT_PRIVATE_KEY }}
