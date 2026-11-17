@@ -200,7 +200,7 @@ paths:
         Replaces the signed-in caller's picture, and creates the caller's profile on the first write. The body
         is the encoded image, 256 KiB at most. The server recognizes its format from the bytes, whatever
         `Content-Type` says, and accepts a still WebP or a JPEG that decodes whole into a square of 1 to
-        512 pixels. It refuses an empty body, and any other picture with the rule it broke, with 422.
+        512 pixels. It refuses any other picture, an empty body included, with 422 naming the rule it broke.
       tags: [profile]
       requestBody:
         required: true
@@ -385,15 +385,11 @@ components:
       description: The body is over 256 KiB.
 
     pictureRefused:
-      description: |
-        The picture breaks the contract, as the problem's `reason` tag names, or the body is empty, which the
-        problem's `invalidFields` tag names.
+      description: The picture breaks the contract, as the problem's `reason` tag names.
       content:
         application/problem+json:
           schema:
-            anyOf:
-              - $ref: "#/components/schemas/pictureRefusedProblem"
-              - $ref: "#/components/schemas/invalidRequest"
+            $ref: "#/components/schemas/pictureRefusedProblem"
 
     tooManyRequests:
       description: |

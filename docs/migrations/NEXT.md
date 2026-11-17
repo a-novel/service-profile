@@ -13,7 +13,6 @@ The service now answers as the authentication service does: 400 for a request it
 | Request                                             | Before | After |
 | --------------------------------------------------- | ------ | ----- |
 | `PUT /v1/profile` with a refused username           | 400    | 422   |
-| `PUT /v1/profile/picture` with an empty body        | 400    | 422   |
 | `GET /v1/profile` without an `id`                   | 400    | 422   |
 | `GET /v1/profile/picture` without an `id`           | 400    | 422   |
 | an `id` that is not a UUID, a body that is not JSON | 400    | 400   |
@@ -26,35 +25,22 @@ The service now answers as the authentication service does: 400 for a request it
  }
 ```
 
-A picture the contract refuses answered 422 already, with its `reason` tag.
+A picture the contract refuses, an empty body included (`reason: format`), answered 422 already.
 
 ## Replace POSTGRES_DSN with the discrete settings
 
-Split the URL `postgres://<user>:<password>@<host>:<port>/<database>?sslmode=<mode>` into one variable per part:
+Remove `POSTGRES_DSN`, and set `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE` and `POSTGRES_TLS_ENABLED` from the parts of its value:
 
-| URL part                     | Variable                                                    |
-| ---------------------------- | ----------------------------------------------------------- |
-| `<host>`                     | `POSTGRES_HOST`                                             |
-| `<port>`                     | `POSTGRES_PORT`, which defaults to `5432`                   |
-| `<user>`                     | `POSTGRES_USER`                                             |
-| `<password>`                 | `POSTGRES_PASSWORD`, injected as a secret                   |
-| `<database>`                 | `POSTGRES_DATABASE`                                         |
-| `sslmode=disable`            | `POSTGRES_TLS_ENABLED=false`                                |
-| any other `sslmode`, or none | leave `POSTGRES_TLS_ENABLED` unset, which encrypts the link |
+| Part of `POSTGRES_DSN`       | Variable                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| host                         | `POSTGRES_HOST`                                                                                   |
+| port                         | `POSTGRES_PORT`, which defaults to `5432`                                                         |
+| user                         | `POSTGRES_USER`                                                                                   |
+| password                     | `POSTGRES_PASSWORD`, injected as a secret, with any percent-escape decoded, such as `%40` for `@` |
+| database                     | `POSTGRES_DATABASE`                                                                               |
+| `sslmode=disable`            | `POSTGRES_TLS_ENABLED=false`                                                                      |
+| any other `sslmode`, or none | leave `POSTGRES_TLS_ENABLED` unset, which encrypts the link and verifies the server               |
 
-```sh
-# before
-POSTGRES_DSN=postgres://agora:p%40ss@db.internal:5432/agora?sslmode=disable
+With TLS on, the service checks the server certificate and its host name against the system trust store, as `sslmode=verify-full` did. The modes `require`, `prefer` and `allow`, and a value without `sslmode`, skipped that check, and `verify-ca` skipped the host name: no unverified mode is left. Before the switch, put the database's CA certificate where Go reads trust, in `SSL_CERT_FILE` or a directory listed in `SSL_CERT_DIR`, and set `POSTGRES_HOST` to a name the certificate covers. Production is unaffected: infra already does both.
 
-# after
-POSTGRES_HOST=db.internal
-POSTGRES_PORT=5432
-POSTGRES_USER=agora
-POSTGRES_PASSWORD=p@ss
-POSTGRES_DATABASE=agora
-POSTGRES_TLS_ENABLED=false
-```
-
-`POSTGRES_PASSWORD` holds the raw password: decode any percent-escape the URL carried, such as `%40` for `@`.
-
-Without `POSTGRES_HOST`, the first database connection fails with `pgdriver: invalid scheme`. With `POSTGRES_HOST` but no `POSTGRES_PASSWORD`, the process stops at startup with `postgres password is empty`. Once the new configuration is deployed and healthy, delete `POSTGRES_DSN` and any secret that held it.
+Without `POSTGRES_HOST`, the process stops at startup with `panic: pgdriver: invalid scheme`. With `POSTGRES_HOST` but no `POSTGRES_PASSWORD`, it stops at startup with `postgres password is empty`. Once the new configuration is deployed and healthy, delete `POSTGRES_DSN` and any secret that held it.
