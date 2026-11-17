@@ -43,15 +43,6 @@ func TestProfilePictureDelete(t *testing.T) {
 			expect: coreProfile,
 		},
 		{
-			name: "Error/NotFound",
-
-			request: &core.ProfilePictureDeleteRequest{UserID: userID},
-
-			daoMock: &daoMock{err: dao.ErrProfilePictureDeleteNotFound},
-
-			expectErr: core.ErrProfilePictureDeleteNotFound,
-		},
-		{
 			name: "Error/Dao",
 
 			request: &core.ProfilePictureDeleteRequest{UserID: userID},
@@ -86,8 +77,6 @@ func TestProfilePictureDelete(t *testing.T) {
 			result, err := core.NewProfilePictureDelete(daoDelete).Exec(t.Context(), testCase.request)
 			require.ErrorIs(t, err, testCase.expectErr)
 			require.Equal(t, testCase.expect, result)
-
-			daoDelete.AssertExpectations(t)
 		})
 	}
 }

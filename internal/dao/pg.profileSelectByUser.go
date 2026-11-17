@@ -16,17 +16,14 @@ import (
 //go:embed pg.profileSelectByUser.sql
 var profileSelectByUserQuery string
 
-// ErrProfileSelectByUserNotFound is returned by [PgProfileSelectByUser.Exec] when the user holds no
-// profile.
-var ErrProfileSelectByUserNotFound = errors.New("profile not found")
-
 // ProfileSelectByUserRequest is the input to [PgProfileSelectByUser.Exec].
 type ProfileSelectByUserRequest struct {
 	// UserID is the user who owns the profile.
 	UserID uuid.UUID
 }
 
-// PgProfileSelectByUser reads the profile of a user.
+// PgProfileSelectByUser reads the profile of a user. It returns [ErrProfileNotFound] when the user holds
+// none.
 type PgProfileSelectByUser struct{}
 
 func NewPgProfileSelectByUser() *PgProfileSelectByUser {
@@ -46,7 +43,7 @@ func (dao *PgProfileSelectByUser) Exec(ctx context.Context, request *ProfileSele
 
 	err = db.NewRaw(profileSelectByUserQuery, request.UserID).Scan(ctx, &entity)
 	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.Join(err, ErrProfileSelectByUserNotFound)
+		err = errors.Join(err, ErrProfileNotFound)
 	}
 
 	if err != nil {

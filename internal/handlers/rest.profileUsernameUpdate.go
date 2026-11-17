@@ -18,7 +18,7 @@ type RestProfileUsernameUpdateService interface {
 
 // profileUsernameUpdateErrors maps a refused username to its status.
 var profileUsernameUpdateErrors = httpf.ErrMap{
-	core.ErrInvalidRequest: http.StatusBadRequest,
+	core.ErrInvalidRequest: http.StatusUnprocessableEntity,
 }
 
 // RestProfileUsernameUpdateRequest is the JSON body the update-username endpoint accepts.

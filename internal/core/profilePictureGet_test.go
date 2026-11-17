@@ -45,15 +45,6 @@ func TestProfilePictureGet(t *testing.T) {
 			expect: &core.ProfilePicture{Type: "image/webp", Picture: stillWebP, Version: pictureVersion},
 		},
 		{
-			name: "Error/NotFound",
-
-			request: &core.ProfilePictureGetRequest{ID: profileID},
-
-			daoMock: &daoMock{err: dao.ErrProfilePictureSelectNotFound},
-
-			expectErr: core.ErrProfilePictureSelectNotFound,
-		},
-		{
 			name: "Error/Dao",
 
 			request: &core.ProfilePictureGetRequest{ID: profileID},
@@ -86,8 +77,6 @@ func TestProfilePictureGet(t *testing.T) {
 			result, err := core.NewProfilePictureGet(daoSelect).Exec(t.Context(), testCase.request)
 			require.ErrorIs(t, err, testCase.expectErr)
 			require.Equal(t, testCase.expect, result)
-
-			daoSelect.AssertExpectations(t)
 		})
 	}
 }

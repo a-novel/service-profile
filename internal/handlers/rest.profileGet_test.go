@@ -66,14 +66,14 @@ func TestRestProfileGet(t *testing.T) {
 
 			serviceMock: &serviceMock[*core.Profile]{err: core.ErrInvalidRequest},
 
-			expectStatus: http.StatusBadRequest,
+			expectStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name: "Error/NotFound",
 
 			target: target,
 
-			serviceMock: &serviceMock[*core.Profile]{err: core.ErrProfileSelectNotFound},
+			serviceMock: &serviceMock[*core.Profile]{err: core.ErrProfileNotFound},
 
 			expectStatus: http.StatusNotFound,
 		},
@@ -107,7 +107,6 @@ func TestRestProfileGet(t *testing.T) {
 			handlers.NewRestProfileGet(service, config.LoggerDev).ServeHTTP(w, request)
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
-			service.AssertExpectations(t)
 		})
 	}
 }

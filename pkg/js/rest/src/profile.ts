@@ -85,7 +85,7 @@ export async function profileGet(api: ProfileApi, accessToken: string, request: 
 
 /**
  * Sets or clears the caller's username, and returns the caller's profile, which the first write creates. Throws on HTTP
- * 400, with `username` in the error's `tags.invalidFields`, for a name the server refuses, and on 403 for an
+ * 422, with `username` in the error's `tags.invalidFields`, for a name the server refuses, and on 403 for an
  * anonymous session.
  */
 export async function profileUsernameUpdate(

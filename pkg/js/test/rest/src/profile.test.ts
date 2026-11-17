@@ -74,10 +74,10 @@ describe("profileUsernameUpdate", () => {
     await expect(profileUsernameUpdate(api, accessToken, { username: "  " })).resolves.toEqual({ id: created.id });
   });
 
-  it("returns 400 naming the username for a refused one", async () => {
+  it("returns 422 naming the username for a refused one", async () => {
     const error = await rejection(profileUsernameUpdate(api, await userAccessToken(), { username: "Jean\tPaul" }));
 
-    expect(isHttpError(error) && error.status).toBe(400);
+    expect(isHttpError(error) && error.status).toBe(422);
     expect(isHttpError(error) && error.tags.invalidFields).toEqual({ username: "username" });
   });
 

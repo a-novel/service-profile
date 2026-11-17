@@ -36,14 +36,14 @@ func TestPgProfilePictureSelect(t *testing.T) {
 
 			request: &dao.ProfilePictureSelectRequest{ID: otherProfileID},
 
-			expectErr: dao.ErrProfilePictureSelectNotFound,
+			expectErr: dao.ErrProfilePictureNotFound,
 		},
 		{
 			name: "Error/NotFound",
 
 			request: &dao.ProfilePictureSelectRequest{ID: absentID},
 
-			expectErr: dao.ErrProfilePictureSelectNotFound,
+			expectErr: dao.ErrProfilePictureNotFound,
 		},
 	}
 

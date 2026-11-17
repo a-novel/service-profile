@@ -17,10 +17,6 @@ import (
 //go:embed pg.profilePictureDelete.sql
 var profilePictureDeleteQuery string
 
-// ErrProfilePictureDeleteNotFound is returned by [PgProfilePictureDelete.Exec] when the user holds no
-// profile.
-var ErrProfilePictureDeleteNotFound = errors.New("profile not found")
-
 // ProfilePictureDeleteRequest is the input to [PgProfilePictureDelete.Exec].
 type ProfilePictureDeleteRequest struct {
 	// UserID is the user who owns the profile.
@@ -30,7 +26,7 @@ type ProfilePictureDeleteRequest struct {
 }
 
 // PgProfilePictureDelete removes the picture of a user's profile. A profile without a picture keeps
-// none.
+// none. It returns [ErrProfileNotFound] when the user holds no profile.
 type PgProfilePictureDelete struct{}
 
 func NewPgProfilePictureDelete() *PgProfilePictureDelete {
@@ -50,7 +46,7 @@ func (dao *PgProfilePictureDelete) Exec(ctx context.Context, request *ProfilePic
 
 	err = db.NewRaw(profilePictureDeleteQuery, request.UserID, request.Now).Scan(ctx, &entity)
 	if errors.Is(err, sql.ErrNoRows) {
-		err = errors.Join(err, ErrProfilePictureDeleteNotFound)
+		err = errors.Join(err, ErrProfileNotFound)
 	}
 
 	if err != nil {

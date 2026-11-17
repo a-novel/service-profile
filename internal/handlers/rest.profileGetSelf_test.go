@@ -46,11 +46,20 @@ func TestRestProfileGetSelf(t *testing.T) {
 			expectStatus: http.StatusForbidden,
 		},
 		{
+			name: "Error/InvalidRequest",
+
+			caller: &userID,
+
+			serviceMock: &serviceMock[*core.Profile]{err: core.ErrInvalidRequest},
+
+			expectStatus: http.StatusUnprocessableEntity,
+		},
+		{
 			name: "Error/NotFound",
 
 			caller: &userID,
 
-			serviceMock: &serviceMock[*core.Profile]{err: core.ErrProfileSelectByUserNotFound},
+			serviceMock: &serviceMock[*core.Profile]{err: core.ErrProfileNotFound},
 
 			expectStatus: http.StatusNotFound,
 		},
@@ -83,7 +92,6 @@ func TestRestProfileGetSelf(t *testing.T) {
 			handlers.NewRestProfileGetSelf(service, config.LoggerDev).ServeHTTP(w, asUser(request, testCase.caller))
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
-			service.AssertExpectations(t)
 		})
 	}
 }

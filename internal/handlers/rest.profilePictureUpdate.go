@@ -19,10 +19,11 @@ type RestProfilePictureUpdateService interface {
 	Exec(ctx context.Context, request *core.ProfilePictureUpdateRequest) (*core.Profile, error)
 }
 
-// profilePictureUpdateErrors maps a refused picture to its status. A picture the contract refuses
-// answers 422, with its reason as the problem's reason tag. A body over the router's limit answers 413.
+// profilePictureUpdateErrors maps a refused picture to its status. An empty body and a picture the
+// contract refuses both answer 422, the latter with its reason as the problem's reason tag. A body over
+// the router's limit answers 413.
 var profilePictureUpdateErrors = httpf.ErrMap{
-	core.ErrInvalidRequest: http.StatusBadRequest,
+	core.ErrInvalidRequest: http.StatusUnprocessableEntity,
 	picture.ErrRefused:     http.StatusUnprocessableEntity,
 }
 
@@ -61,8 +62,7 @@ func (handler *RestProfilePictureUpdate) ServeHTTP(w http.ResponseWriter, r *htt
 
 	profile, err := handler.service.Exec(ctx, &core.ProfilePictureUpdateRequest{UserID: userID, Picture: body})
 
-	var refusal picture.RefusedError
-	if errors.As(err, &refusal) {
+	if refusal, ok := errors.AsType[picture.RefusedError](err); ok {
 		err = httpf.WithTag(err, "reason", string(refusal))
 	}
 

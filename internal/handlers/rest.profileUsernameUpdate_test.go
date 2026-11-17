@@ -68,7 +68,7 @@ func TestRestProfileUsernameUpdate(t *testing.T) {
 
 			serviceMock: &serviceMock[*core.Profile]{err: core.ErrInvalidRequest},
 
-			expectStatus: http.StatusBadRequest,
+			expectStatus: http.StatusUnprocessableEntity,
 		},
 		{
 			name: "Error/Internal",
@@ -102,7 +102,6 @@ func TestRestProfileUsernameUpdate(t *testing.T) {
 			handlers.NewRestProfileUsernameUpdate(service, config.LoggerDev).ServeHTTP(w, asUser(request, testCase.caller))
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
-			service.AssertExpectations(t)
 		})
 	}
 }

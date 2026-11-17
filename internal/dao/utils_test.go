@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/driver/pgdriver"
@@ -62,17 +61,17 @@ func profileFixtures() []*profileRow {
 		{
 			ID:               profileID,
 			UserID:           userID,
-			Username:         lo.ToPtr("Jean Paul"),
+			Username:         new("Jean Paul"),
 			Picture:          picture,
-			PictureType:      lo.ToPtr("image/webp"),
-			PictureUpdatedAt: lo.ToPtr(updatedAt),
+			PictureType:      new("image/webp"),
+			PictureUpdatedAt: new(updatedAt),
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
 		},
 		{
 			ID:        otherProfileID,
 			UserID:    otherUserID,
-			Username:  lo.ToPtr("Marie"),
+			Username:  new("Marie"),
 			CreatedAt: createdAt,
 			UpdatedAt: updatedAt,
 		},
