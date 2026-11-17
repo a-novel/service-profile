@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/config/configtest"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/handlers"
 	handlersmocks "github.com/a-novel/service-profile/internal/handlers/mocks"
@@ -111,7 +111,7 @@ func TestRestProfilePictureGet(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			handlers.NewRestProfilePictureGet(service, config.LoggerDev).ServeHTTP(w, request)
+			handlers.NewRestProfilePictureGet(service, configtest.Logger).ServeHTTP(w, request)
 
 			response := w.Result()
 			require.Equal(t, testCase.expectStatus, response.StatusCode)

@@ -26,29 +26,29 @@ func TestRestHealth(t *testing.T) {
 		jsonKeysErr error
 
 		expectStatus   int
-		expectHealth   string
+		expectPostgres string
 		expectJSONKeys string
 	}{
 		{
 			name:           "Success",
 			postgres:       true,
 			expectStatus:   http.StatusOK,
-			expectHealth:   handlers.RestHealthStatusUp,
-			expectJSONKeys: handlers.RestHealthStatusUp,
+			expectPostgres: "up",
+			expectJSONKeys: "up",
 		},
 		{
 			name:           "Error/PostgresDown",
 			expectStatus:   http.StatusServiceUnavailable,
-			expectHealth:   handlers.RestHealthStatusDown,
-			expectJSONKeys: handlers.RestHealthStatusUp,
+			expectPostgres: "down",
+			expectJSONKeys: "up",
 		},
 		{
 			name:           "Error/JSONKeysDown",
 			postgres:       true,
 			jsonKeysErr:    errors.New("unavailable"),
 			expectStatus:   http.StatusServiceUnavailable,
-			expectHealth:   handlers.RestHealthStatusUp,
-			expectJSONKeys: handlers.RestHealthStatusDown,
+			expectPostgres: "up",
+			expectJSONKeys: "down",
 		},
 	}
 
@@ -75,7 +75,7 @@ func TestRestHealth(t *testing.T) {
 			require.Contains(t, response.Header.Get("Content-Type"), "application/json")
 			// Exact matching keeps raw dependency errors out of the public report.
 			requireResponse(t, response, testCase.expectStatus, map[string]any{
-				"client:postgres": map[string]any{"status": testCase.expectHealth},
+				"client:postgres": map[string]any{"status": testCase.expectPostgres},
 				"api:jsonKeys":    map[string]any{"status": testCase.expectJSONKeys},
 			})
 		})

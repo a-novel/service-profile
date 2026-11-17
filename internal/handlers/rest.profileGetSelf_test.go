@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/config/configtest"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/handlers"
 	handlersmocks "github.com/a-novel/service-profile/internal/handlers/mocks"
@@ -89,7 +89,7 @@ func TestRestProfileGetSelf(t *testing.T) {
 			request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/profile/self", nil)
 
 			w := httptest.NewRecorder()
-			handlers.NewRestProfileGetSelf(service, config.LoggerDev).ServeHTTP(w, asUser(request, testCase.caller))
+			handlers.NewRestProfileGetSelf(service, configtest.Logger).ServeHTTP(w, asUser(request, testCase.caller))
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
 		})

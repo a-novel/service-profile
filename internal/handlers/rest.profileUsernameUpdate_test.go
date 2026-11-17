@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/config/configtest"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/handlers"
 	handlersmocks "github.com/a-novel/service-profile/internal/handlers/mocks"
@@ -99,7 +99,7 @@ func TestRestProfileUsernameUpdate(t *testing.T) {
 			)
 
 			w := httptest.NewRecorder()
-			handlers.NewRestProfileUsernameUpdate(service, config.LoggerDev).ServeHTTP(w, asUser(request, testCase.caller))
+			handlers.NewRestProfileUsernameUpdate(service, configtest.Logger).ServeHTTP(w, asUser(request, testCase.caller))
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
 		})

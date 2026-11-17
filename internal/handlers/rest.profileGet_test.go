@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/config/configtest"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/handlers"
 	handlersmocks "github.com/a-novel/service-profile/internal/handlers/mocks"
@@ -104,7 +104,7 @@ func TestRestProfileGet(t *testing.T) {
 			request := asUser(httptest.NewRequestWithContext(t.Context(), http.MethodGet, testCase.target, nil), nil)
 
 			w := httptest.NewRecorder()
-			handlers.NewRestProfileGet(service, config.LoggerDev).ServeHTTP(w, request)
+			handlers.NewRestProfileGet(service, configtest.Logger).ServeHTTP(w, request)
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
 		})

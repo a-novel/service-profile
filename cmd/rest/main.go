@@ -1,12 +1,13 @@
-// Command rest serves the public REST API, for any HTTP client. cmd/migrations applies the database
-// schema.
+// Command rest serves the public REST API to the callers its service tokens allow. It refuses to start
+// without a token issuer unless SERVICE_ISSUER_OPTIONAL opts a local stack out. cmd/migrations applies
+// the database schema.
 package main
 
 import (
 	"context"
-	"io"
+	"fmt"
 	"log"
-	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -25,7 +26,6 @@ import (
 	"github.com/a-novel-kit/golib/postgres"
 
 	"github.com/a-novel/service-profile/internal/config"
-	"github.com/a-novel/service-profile/internal/config/env"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/dao"
 	"github.com/a-novel/service-profile/internal/handlers"
@@ -34,10 +34,7 @@ import (
 func main() {
 	cfg := config.AppPresetDefault
 
-	// Without an issuer, every caller reaches the routes, so only the standalone image starts so.
-	if cfg.ServiceToken.Issuer == "" && !cfg.ServiceIssuerOptional {
-		log.Fatalln("SERVICE_TOKEN_ISSUER is empty: set it, or SERVICE_ISSUER_OPTIONAL=true outside production")
-	}
+	withServiceToken := lo.Must(newServiceTokenGate(cfg))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -47,16 +44,10 @@ func main() {
 	lo.Must0(otel.Init(cfg.Otel))
 	defer cfg.Otel.Flush()
 
-	if env.OTLPEndpoint == "" {
-		log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
-	}
-
 	// A server started during a planned downtime refuses work, so it leaves the database alone.
 	if !downtime.Started(cfg.App.DowntimeStart, time.Now()) {
 		ctx = lo.Must(postgres.NewContext(ctx, cfg.Postgres))
-
-		database := lo.Must(cfg.Postgres.DB(ctx))
-		defer closeDatabase(database)
+		defer cfg.Postgres.Close()
 	}
 
 	// =================================================================================================================
@@ -64,8 +55,7 @@ func main() {
 	// =================================================================================================================
 
 	jsonKeysClient := lo.Must(servicejsonkeys.NewClient(
-		net.JoinHostPort(cfg.Dependencies.ServiceJSONKeysHost, strconv.Itoa(cfg.Dependencies.ServiceJSONKeysPort)),
-		lo.Must(cfg.Dependencies.ServiceJSONKeysCredentials.Options(ctx))...,
+		cfg.Dependencies.ServiceJSONKeys.Address(), cfg.Dependencies.ServiceJSONKeys.DialOptions()...,
 	))
 	defer jsonKeysClient.Close()
 
@@ -98,7 +88,6 @@ func main() {
 	// HANDLERS
 	// =================================================================================================================
 
-	handlerPing := handlers.NewRestPing()
 	handlerHealth := handlers.NewRestHealth(jsonKeysClient)
 	handlerProfileGet := handlers.NewRestProfileGet(serviceProfileGet, cfg.Logger)
 	handlerProfileGetSelf := handlers.NewRestProfileGetSelf(serviceProfileGetSelf, cfg.Logger)
@@ -111,14 +100,11 @@ func main() {
 	// ROUTER
 	// =================================================================================================================
 
-	router := httpf.NewRouter(cfg.Rest, cfg.Otel, cfg.RestLogger, cfg.App.DowntimeStart)
-	withServiceToken := handlers.RestServiceToken(
-		cfg.ServiceToken, httpf.NewPoolClient(httpf.PoolOptions{}), cfg.Logger, cfg.Rest.Liveness,
-	)
+	router := httpf.NewMux(cfg.Rest, cfg.RestLogger, cfg.App.DowntimeStart)
 
 	router.Route("/v1", func(api chi.Router) {
-		api.Get("/ping", handlerPing.ServeHTTP)
-		api.Get("/healthcheck", handlerHealth.ServeHTTP)
+		api.Get("/ping", httpf.Ping)
+		api.Get("/healthcheck", handlerHealth)
 
 		withAuth(api, config.PermissionProfileRead).Get("/profile", handlerProfileGet.ServeHTTP)
 		withAuth(api, config.PermissionProfileRead).Get("/profile/self", handlerProfileGetSelf.ServeHTTP)
@@ -137,9 +123,16 @@ func main() {
 	lo.Must0(httpf.ListenAndServe(ctx, cfg.Rest, withServiceToken(router)))
 }
 
-func closeDatabase(database io.Closer) {
-	err := database.Close()
+// newServiceTokenGate returns the middleware that wraps the whole router, so a request reaches a route
+// only with a service token cfg accepts. The liveness route stays open to the kubelet. The gate refuses
+// an empty issuer unless cfg opts a local stack out, so the server never starts open by mistake.
+func newServiceTokenGate(cfg config.App) (func(http.Handler) http.Handler, error) {
+	gate, err := httpf.ServiceTokenGate(
+		cfg.ServiceToken, httpf.NewPoolClient(httpf.PoolOptions{}), cfg.Logger, cfg.Rest.Liveness,
+	)
 	if err != nil {
-		log.Println("Close Postgres: " + err.Error())
+		return nil, fmt.Errorf("service token gate: %w", err)
 	}
+
+	return gate, nil
 }
