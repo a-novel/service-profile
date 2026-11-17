@@ -28,14 +28,14 @@ func TestRestHealth(t *testing.T) {
 
 		expectStatus   int
 		expectHealth   string
-		expectJsonKeys string
+		expectJSONKeys string
 	}{
 		{
 			name:           "Success",
 			setup:          probeHealthy,
 			expectStatus:   http.StatusOK,
 			expectHealth:   handlers.RestHealthStatusUp,
-			expectJsonKeys: handlers.RestHealthStatusUp,
+			expectJSONKeys: handlers.RestHealthStatusUp,
 		},
 		{
 			name:           "Error/JsonKeysDown",
@@ -43,35 +43,35 @@ func TestRestHealth(t *testing.T) {
 			jsonKeysErr:    errors.New("unavailable"),
 			expectStatus:   http.StatusServiceUnavailable,
 			expectHealth:   handlers.RestHealthStatusUp,
-			expectJsonKeys: handlers.RestHealthStatusDown,
+			expectJSONKeys: handlers.RestHealthStatusDown,
 		},
 		{
 			name:           "Error/MissingPostgres",
 			setup:          probeWithoutPostgres,
 			expectStatus:   http.StatusServiceUnavailable,
 			expectHealth:   handlers.RestHealthStatusDown,
-			expectJsonKeys: handlers.RestHealthStatusUp,
+			expectJSONKeys: handlers.RestHealthStatusUp,
 		},
 		{
 			name:           "Error/ClosedPostgres",
 			setup:          probeClosedPostgres,
 			expectStatus:   http.StatusServiceUnavailable,
 			expectHealth:   handlers.RestHealthStatusDown,
-			expectJsonKeys: handlers.RestHealthStatusUp,
+			expectJSONKeys: handlers.RestHealthStatusUp,
 		},
 		{
 			name:           "Error/TransactionContext",
 			setup:          probeInTransaction,
 			expectStatus:   http.StatusServiceUnavailable,
 			expectHealth:   handlers.RestHealthStatusDown,
-			expectJsonKeys: handlers.RestHealthStatusUp,
+			expectJSONKeys: handlers.RestHealthStatusUp,
 		},
 		{
 			name:           "Error/CancelledProbe",
 			setup:          probeCancelled,
 			expectStatus:   http.StatusServiceUnavailable,
 			expectHealth:   handlers.RestHealthStatusDown,
-			expectJsonKeys: handlers.RestHealthStatusUp,
+			expectJSONKeys: handlers.RestHealthStatusUp,
 		},
 	}
 
@@ -82,7 +82,7 @@ func TestRestHealth(t *testing.T) {
 			ctx := newProbeContext(t, testCase.setup)
 			recorder := httptest.NewRecorder()
 
-			jsonKeys := handlersmocks.NewMockRestHealthApiJsonKeys(t)
+			jsonKeys := handlersmocks.NewMockRestHealthAPIJSONKeys(t)
 			jsonKeys.EXPECT().
 				Status(mock.Anything, &servicejsonkeys.StatusRequest{}).
 				Return(&servicejsonkeys.StatusResponse{}, testCase.jsonKeysErr)
@@ -103,7 +103,7 @@ func TestRestHealth(t *testing.T) {
 			// Exact matching keeps raw dependency errors out of the public report.
 			require.Equal(t, map[string]any{
 				"client:postgres": map[string]any{"status": testCase.expectHealth},
-				"api:jsonKeys":    map[string]any{"status": testCase.expectJsonKeys},
+				"api:jsonKeys":    map[string]any{"status": testCase.expectJSONKeys},
 			}, report)
 
 			jsonKeys.AssertExpectations(t)

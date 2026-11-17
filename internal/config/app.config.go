@@ -24,12 +24,12 @@ type Main struct {
 
 // Dependencies configures how the service reaches the services it calls.
 type Dependencies struct {
-	// ServiceJsonKeysHost is the hostname of the JSON Keys service, which verifies access tokens.
-	ServiceJsonKeysHost string `json:"serviceJSONKeysHost" yaml:"serviceJSONKeysHost"`
-	// ServiceJsonKeysPort is the gRPC port of the JSON Keys service.
-	ServiceJsonKeysPort int `json:"serviceJSONKeysPort" yaml:"serviceJSONKeysPort"`
-	// ServiceJsonKeysCredentials authenticates the calls to the JSON Keys service.
-	ServiceJsonKeysCredentials grpcf.CredentialsProvider `json:"-" yaml:"-"`
+	// ServiceJSONKeysHost is the hostname of the JSON Keys service, which verifies access tokens.
+	ServiceJSONKeysHost string `json:"serviceJSONKeysHost" yaml:"serviceJSONKeysHost"`
+	// ServiceJSONKeysPort is the gRPC port of the JSON Keys service.
+	ServiceJSONKeysPort int `json:"serviceJSONKeysPort" yaml:"serviceJSONKeysPort"`
+	// ServiceJSONKeysCredentials authenticates the calls to the JSON Keys service.
+	ServiceJSONKeysCredentials grpcf.CredentialsProvider `json:"-" yaml:"-"`
 }
 
 // App is the complete configuration the service reads at startup.
