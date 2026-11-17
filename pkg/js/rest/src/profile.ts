@@ -1,6 +1,4 @@
-import type { ProfileApi } from "./api";
-
-import { HTTP_HEADERS } from "@a-novel-kit/nodelib-browser/http";
+import type { ProfileApi } from "./api.js";
 
 import { z } from "zod";
 
@@ -68,19 +66,13 @@ export type ProfilePictureGetRequest = z.infer<typeof ProfilePictureGetRequestSc
  * anonymous session.
  */
 export async function profileGetSelf(api: ProfileApi, accessToken: string): Promise<Profile> {
-  return await api.fetch("/v1/profile/self", ProfileSchema, {
-    method: "GET",
-    headers: { ...HTTP_HEADERS.JSON, Authorization: `Bearer ${accessToken}` },
-  });
+  return await api.fetch("/v1/profile/self", ProfileSchema, { method: "GET", accessToken });
 }
 
 /** Returns any profile. Any access token reads it, an anonymous one included. Throws on HTTP 404 for an unknown ID. */
 export async function profileGet(api: ProfileApi, accessToken: string, request: ProfileGetRequest): Promise<Profile> {
   const params = new URLSearchParams({ id: request.id });
-  return await api.fetch(`/v1/profile?${params.toString()}`, ProfileSchema, {
-    method: "GET",
-    headers: { ...HTTP_HEADERS.JSON, Authorization: `Bearer ${accessToken}` },
-  });
+  return await api.fetch(`/v1/profile?${params.toString()}`, ProfileSchema, { method: "GET", accessToken });
 }
 
 /**
@@ -93,11 +85,7 @@ export async function profileUsernameUpdate(
   accessToken: string,
   request: ProfileUsernameUpdateRequest
 ): Promise<Profile> {
-  return await api.fetch("/v1/profile", ProfileSchema, {
-    method: "PUT",
-    headers: { ...HTTP_HEADERS.JSON, Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(request),
-  });
+  return await api.fetch("/v1/profile", ProfileSchema, { method: "PUT", accessToken, json: request });
 }
 
 /**
@@ -112,7 +100,8 @@ export async function profilePictureUpdate(
 ): Promise<Profile> {
   return await api.fetch("/v1/profile/picture", ProfileSchema, {
     method: "PUT",
-    headers: { "Content-Type": request.picture.type, Authorization: `Bearer ${accessToken}` },
+    accessToken,
+    headers: { "Content-Type": request.picture.type },
     body: request.picture,
   });
 }
@@ -122,10 +111,7 @@ export async function profilePictureUpdate(
  * write, and on 403 for an anonymous session.
  */
 export async function profilePictureDelete(api: ProfileApi, accessToken: string): Promise<Profile> {
-  return await api.fetch("/v1/profile/picture", ProfileSchema, {
-    method: "DELETE",
-    headers: { ...HTTP_HEADERS.JSON, Authorization: `Bearer ${accessToken}` },
-  });
+  return await api.fetch("/v1/profile/picture", ProfileSchema, { method: "DELETE", accessToken });
 }
 
 /**
@@ -138,8 +124,5 @@ export async function profilePictureGet(
   request: ProfilePictureGetRequest
 ): Promise<Blob> {
   const params = new URLSearchParams({ id: request.id });
-  return await api.fetchBlob(`/v1/profile/picture?${params.toString()}`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  return await api.fetchBlob(`/v1/profile/picture?${params.toString()}`, { method: "GET", accessToken });
 }

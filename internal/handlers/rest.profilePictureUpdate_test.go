@@ -13,7 +13,7 @@ import (
 
 	"github.com/a-novel-kit/golib/picture"
 
-	"github.com/a-novel/service-profile/internal/config"
+	"github.com/a-novel/service-profile/internal/config/configtest"
 	"github.com/a-novel/service-profile/internal/core"
 	"github.com/a-novel/service-profile/internal/handlers"
 	handlersmocks "github.com/a-novel/service-profile/internal/handlers/mocks"
@@ -116,7 +116,7 @@ func TestRestProfilePictureUpdate(t *testing.T) {
 			}
 
 			request := httptest.NewRequestWithContext(t.Context(), http.MethodPut, "/v1/profile/picture", body)
-			handlers.NewRestProfilePictureUpdate(service, config.LoggerDev).ServeHTTP(w, asUser(request, testCase.caller))
+			handlers.NewRestProfilePictureUpdate(service, configtest.Logger).ServeHTTP(w, asUser(request, testCase.caller))
 
 			requireResponse(t, w.Result(), testCase.expectStatus, testCase.expectResponse)
 		})

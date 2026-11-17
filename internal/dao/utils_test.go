@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/driver/pgdriver"
 
 	"github.com/a-novel-kit/golib/postgres"
 )
@@ -110,8 +109,6 @@ func selectProfileRow(ctx context.Context, t *testing.T, owner uuid.UUID) *profi
 func requireViolation(t *testing.T, err error, constraint string) {
 	t.Helper()
 
-	var pgErr pgdriver.Error
-
-	require.ErrorAs(t, err, &pgErr)
-	require.Equal(t, constraint, pgErr.Field('n'))
+	_, violated := postgres.SQLState(err)
+	require.Equal(t, constraint, violated)
 }

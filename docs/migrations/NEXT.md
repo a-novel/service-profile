@@ -1,10 +1,16 @@
 # Upgrading to NEXT
 
-A request that parses but fails validation answers 422 instead of 400, and the images no longer read `POSTGRES_DSN`.
+A request that parses but fails validation answers 422 instead of 400, the images no longer read `POSTGRES_DSN`, and the JS client needs `@a-novel-kit/nodelib-browser` 2.13.0 or later.
 
 ## Do I need to act?
 
-**Required** for a client that tells a refused request apart by its status, and for a deployment that sets `POSTGRES_DSN` without `POSTGRES_HOST`. A client that handles every 4xx alike, and a deployment that sets `POSTGRES_HOST`, take this release as-is.
+**Required** for a client that tells a refused request apart by its status, for a deployment that sets `POSTGRES_DSN` without `POSTGRES_HOST`, and for a JS consumer whose lockfile holds `@a-novel-kit/nodelib-browser` before 2.13.0: the client then fails to load, on the missing `RestClient` export. A client that handles every 4xx alike, a deployment that sets `POSTGRES_HOST`, and a JS consumer on nodelib-browser 2.13.0 or later take this release as-is.
+
+## Install nodelib-browser 2.13.0 or later beside the JS client
+
+`@a-novel/service-profile-rest` builds `ProfileApi` on the `RestClient` that `@a-novel-kit/nodelib-browser` ships from 2.13.0, so its peer range is now `^2.13.0`.
+
+A request without a body no longer sends `Content-Type: application/json`, so a test that compares the client's exact request headers drops that header from its expectation.
 
 ## Read 422 for a request that fails validation
 

@@ -24,12 +24,9 @@ type Main struct {
 
 // Dependencies configures how the service reaches the services it calls.
 type Dependencies struct {
-	// ServiceJSONKeysHost is the hostname of the JSON Keys service, which verifies access tokens.
-	ServiceJSONKeysHost string
-	// ServiceJSONKeysPort is the gRPC port of the JSON Keys service.
-	ServiceJSONKeysPort int
-	// ServiceJSONKeysCredentials authenticates the calls to the JSON Keys service.
-	ServiceJSONKeysCredentials grpcf.CredentialsProvider
+	// ServiceJSONKeys locates the JSON Keys service, which verifies access tokens, and says how to
+	// dial it.
+	ServiceJSONKeys grpcf.ClientConfig
 }
 
 // App is the complete configuration the service reads at startup.
@@ -42,11 +39,9 @@ type App struct {
 	Permissions serviceauthentication.Permissions
 	// Rest configures the REST server.
 	Rest httpf.ServerConfig
-	// ServiceToken names the service tokens the REST server accepts.
+	// ServiceToken names the service tokens the REST server accepts. Without an issuer, the server
+	// refuses to start unless its IssuerOptional field lets it take every request.
 	ServiceToken servicetoken.Config
-	// ServiceIssuerOptional lets the REST server start with no ServiceToken issuer, and take every
-	// request without a service token. Without it, a ServiceToken with no issuer refuses to start.
-	ServiceIssuerOptional bool
 
 	// Otel configures the OpenTelemetry exporter.
 	Otel otel.Config

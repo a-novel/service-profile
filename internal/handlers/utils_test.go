@@ -69,15 +69,6 @@ func requireResponse(t *testing.T, response *http.Response, expectStatus int, ex
 	require.Equal(t, expectBody, body)
 }
 
-const (
-	// serviceTokenAudience is the audience the service token tests answer to.
-	serviceTokenAudience = "service-profile"
-	// serviceTokenCaller is the one caller the service token tests allow.
-	serviceTokenCaller = "system:serviceaccount:agora:caller"
-	// serviceTokenStranger is a caller outside the allowed ones.
-	serviceTokenStranger = "system:serviceaccount:agora:stranger"
-)
-
 // postgresContext returns the test's context carrying the test database, as the servers hand it to
 // a health probe.
 func postgresContext(t *testing.T) context.Context {
