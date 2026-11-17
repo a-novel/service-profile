@@ -175,6 +175,13 @@ describe("profileGet", () => {
   it("returns 400 for a malformed ID", async () => {
     await expectStatus(profileGet(api, await anonymousAccessToken(), { id: "not-a-uuid" }), 400);
   });
+
+  it("returns 422 for the nil ID", async () => {
+    await expectStatus(
+      profileGet(api, await anonymousAccessToken(), { id: "00000000-0000-0000-0000-000000000000" }),
+      422
+    );
+  });
 });
 
 describe("profilePictureGet", () => {
@@ -194,5 +201,12 @@ describe("profilePictureGet", () => {
 
   it("returns 400 for a malformed ID", async () => {
     await expectStatus(profilePictureGet(api, await anonymousAccessToken(), { id: "not-a-uuid" }), 400);
+  });
+
+  it("returns 422 for the nil ID", async () => {
+    await expectStatus(
+      profilePictureGet(api, await anonymousAccessToken(), { id: "00000000-0000-0000-0000-000000000000" }),
+      422
+    );
   });
 });
