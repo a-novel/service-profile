@@ -1,4 +1,4 @@
-import type { ProfileApi } from "./api";
+import type { ProfileApi } from "./api.js";
 
 import { z } from "zod";
 
