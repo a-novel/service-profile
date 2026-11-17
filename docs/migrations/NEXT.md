@@ -6,6 +6,10 @@ A request that parses but fails validation answers 422 instead of 400, and the i
 
 **Required** for a client that tells a refused request apart by its status, and for a deployment that sets `POSTGRES_DSN` without `POSTGRES_HOST`. A client that handles every 4xx alike, and a deployment that sets `POSTGRES_HOST`, take this release as-is.
 
+## Install nodelib-browser 2.13.0 or later beside the JS client
+
+`@a-novel/service-profile-rest` builds `ProfileApi` on the `RestClient` that `@a-novel-kit/nodelib-browser` ships from 2.13.0, so its peer range is now `^2.13.0`.
+
 ## Read 422 for a request that fails validation
 
 The service now answers as the authentication service does: 400 for a request it cannot parse, 422 for one that parses but breaks a rule. The problem body keeps its shape, with `status` 422 and the title `Unprocessable Entity`.
