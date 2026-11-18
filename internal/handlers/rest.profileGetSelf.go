@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	serviceauthentication "github.com/a-novel/service-authentication/v2/pkg/go"
+
 	"github.com/a-novel-kit/golib/httpf"
 	"github.com/a-novel-kit/golib/logging"
 	"github.com/a-novel-kit/golib/otel"
@@ -38,7 +40,7 @@ func (handler *RestProfileGetSelf) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	ctx, span := otel.Tracer().Start(r.Context(), "rest.ProfileGetSelf")
 	defer span.End()
 
-	userID, err := requestOwner(r)
+	userID, err := serviceauthentication.RequestUser(r.Context())
 	if err != nil {
 		httpf.HandleError(ctx, handler.logger, w, span, ownerErrors, err)
 
