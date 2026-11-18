@@ -1,12 +1,12 @@
 // @vitest-environment node
-import { anonymousAccessToken, userAccessToken } from "./token";
-
 import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
 import { isHttpError } from "@a-novel-kit/nodelib-browser/http";
 import { expectStatus } from "@a-novel-kit/nodelib-test/http";
+import { AuthenticationApi } from "@a-novel/service-authentication-rest";
+import { anonymousAccessToken, userAccessToken } from "@a-novel/service-authentication-rest-test";
 import {
   PictureRefusal,
   ProfileApi,
@@ -19,6 +19,8 @@ import {
 } from "@a-novel/service-profile-rest";
 
 const api = new ProfileApi(process.env.REST_URL!);
+/** Signs the suite's users in: the profile routes read who calls from the authentication service's tokens. */
+const authApi = new AuthenticationApi(process.env.SERVICE_AUTHENTICATION_URL!);
 
 /** A 16 px square WebP, which the server accepts. */
 const square = new Blob([readFileSync(new URL("../testdata/square.webp", import.meta.url))], { type: "image/webp" });
@@ -35,30 +37,30 @@ async function rejection(promise: Promise<unknown>): Promise<unknown> {
 
 describe("profileGetSelf", () => {
   it("returns 404 before the first write", async () => {
-    await expectStatus(profileGetSelf(api, await userAccessToken()), 404);
+    await expectStatus(profileGetSelf(api, await userAccessToken(authApi)), 404);
   });
 
   it("returns the caller's profile", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     const profile = await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
 
     await expect(profileGetSelf(api, accessToken)).resolves.toEqual(profile);
   });
 
   it("returns 403 for an anonymous session", async () => {
-    await expectStatus(profileGetSelf(api, await anonymousAccessToken()), 403);
+    await expectStatus(profileGetSelf(api, await anonymousAccessToken(authApi)), 403);
   });
 });
 
 describe("profileUsernameUpdate", () => {
   it("creates the profile on the first write, with the username trimmed", async () => {
-    const profile = await profileUsernameUpdate(api, await userAccessToken(), { username: "  Jean Paul  " });
+    const profile = await profileUsernameUpdate(api, await userAccessToken(authApi), { username: "  Jean Paul  " });
 
     expect(profile).toEqual({ id: expect.any(String), username: "Jean Paul" });
   });
 
   it("replaces the username of the profile", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     const created = await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
 
     await expect(profileUsernameUpdate(api, accessToken, { username: "Marie" })).resolves.toEqual({
@@ -68,33 +70,35 @@ describe("profileUsernameUpdate", () => {
   });
 
   it("clears the username with a name of spaces", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     const created = await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
 
     await expect(profileUsernameUpdate(api, accessToken, { username: "  " })).resolves.toEqual({ id: created.id });
   });
 
   it("returns 422 naming the username for a refused one", async () => {
-    const error = await rejection(profileUsernameUpdate(api, await userAccessToken(), { username: "Jean\tPaul" }));
+    const error = await rejection(
+      profileUsernameUpdate(api, await userAccessToken(authApi), { username: "Jean\tPaul" })
+    );
 
     expect(isHttpError(error) && error.status).toBe(422);
     expect(isHttpError(error) && error.tags.invalidFields).toEqual({ username: "username" });
   });
 
   it("returns 403 for an anonymous session", async () => {
-    await expectStatus(profileUsernameUpdate(api, await anonymousAccessToken(), { username: "Jean Paul" }), 403);
+    await expectStatus(profileUsernameUpdate(api, await anonymousAccessToken(authApi), { username: "Jean Paul" }), 403);
   });
 });
 
 describe("profilePictureUpdate", () => {
   it("creates the profile on the first write, with a picture version", async () => {
-    const profile = await profilePictureUpdate(api, await userAccessToken(), { picture: square });
+    const profile = await profilePictureUpdate(api, await userAccessToken(authApi), { picture: square });
 
     expect(profile).toEqual({ id: expect.any(String), pictureVersion: expect.any(String) });
   });
 
   it("replaces the picture with a new version", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     const first = await profilePictureUpdate(api, accessToken, { picture: square });
     const second = await profilePictureUpdate(api, accessToken, { picture: square });
 
@@ -103,7 +107,7 @@ describe("profilePictureUpdate", () => {
   });
 
   it("returns 422 with the reason for a refused picture", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     const refusals = [
       { picture: wide, reason: PictureRefusal.Ratio },
       { picture: new Blob(["not an image"], { type: "image/webp" }), reason: PictureRefusal.Format },
@@ -120,17 +124,17 @@ describe("profilePictureUpdate", () => {
   it("returns 413 above 256 KiB", async () => {
     const picture = new Blob([new Uint8Array(256 * 1024 + 1)], { type: "image/webp" });
 
-    await expectStatus(profilePictureUpdate(api, await userAccessToken(), { picture }), 413);
+    await expectStatus(profilePictureUpdate(api, await userAccessToken(authApi), { picture }), 413);
   });
 
   it("returns 403 for an anonymous session", async () => {
-    await expectStatus(profilePictureUpdate(api, await anonymousAccessToken(), { picture: square }), 403);
+    await expectStatus(profilePictureUpdate(api, await anonymousAccessToken(authApi), { picture: square }), 403);
   });
 });
 
 describe("profilePictureDelete", () => {
   it("removes the picture", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     const created = await profilePictureUpdate(api, accessToken, { picture: square });
 
     await expect(profilePictureDelete(api, accessToken)).resolves.toEqual({ id: created.id });
@@ -138,47 +142,47 @@ describe("profilePictureDelete", () => {
   });
 
   it("returns 404 before the first write", async () => {
-    await expectStatus(profilePictureDelete(api, await userAccessToken()), 404);
+    await expectStatus(profilePictureDelete(api, await userAccessToken(authApi)), 404);
   });
 
   it("returns 403 for an anonymous session", async () => {
-    await expectStatus(profilePictureDelete(api, await anonymousAccessToken()), 403);
+    await expectStatus(profilePictureDelete(api, await anonymousAccessToken(authApi)), 403);
   });
 });
 
 describe("profileGet", () => {
   it("reads any profile with an anonymous token", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
     const profile = await profilePictureUpdate(api, accessToken, { picture: square });
 
-    await expect(profileGet(api, await anonymousAccessToken(), { id: profile.id })).resolves.toEqual(profile);
+    await expect(profileGet(api, await anonymousAccessToken(authApi), { id: profile.id })).resolves.toEqual(profile);
   });
 
   it("never names the owner", async () => {
-    const accessToken = await userAccessToken();
+    const accessToken = await userAccessToken(authApi);
     await profileUsernameUpdate(api, accessToken, { username: "Jean Paul" });
     const { id } = await profilePictureUpdate(api, accessToken, { picture: square });
 
     // The client's schema drops unknown fields, so the raw body proves the response holds no other.
     const response = await fetch(`${process.env.REST_URL}/v1/profile?id=${id}`, {
-      headers: { Authorization: `Bearer ${await anonymousAccessToken()}` },
+      headers: { Authorization: `Bearer ${await anonymousAccessToken(authApi)}` },
     });
 
     expect(Object.keys(await response.json()).sort()).toEqual(["id", "pictureVersion", "username"]);
   });
 
   it("returns 404 for an unknown profile", async () => {
-    await expectStatus(profileGet(api, await anonymousAccessToken(), { id: crypto.randomUUID() }), 404);
+    await expectStatus(profileGet(api, await anonymousAccessToken(authApi), { id: crypto.randomUUID() }), 404);
   });
 
   it("returns 400 for a malformed ID", async () => {
-    await expectStatus(profileGet(api, await anonymousAccessToken(), { id: "not-a-uuid" }), 400);
+    await expectStatus(profileGet(api, await anonymousAccessToken(authApi), { id: "not-a-uuid" }), 400);
   });
 
   it("returns 422 for the nil ID", async () => {
     await expectStatus(
-      profileGet(api, await anonymousAccessToken(), { id: "00000000-0000-0000-0000-000000000000" }),
+      profileGet(api, await anonymousAccessToken(authApi), { id: "00000000-0000-0000-0000-000000000000" }),
       422
     );
   });
@@ -186,26 +190,26 @@ describe("profileGet", () => {
 
 describe("profilePictureGet", () => {
   it("reads any picture with an anonymous token, as it was sent", async () => {
-    const profile = await profilePictureUpdate(api, await userAccessToken(), { picture: square });
-    const picture = await profilePictureGet(api, await anonymousAccessToken(), { id: profile.id });
+    const profile = await profilePictureUpdate(api, await userAccessToken(authApi), { picture: square });
+    const picture = await profilePictureGet(api, await anonymousAccessToken(authApi), { id: profile.id });
 
     expect(picture.type).toBe("image/webp");
     expect(new Uint8Array(await picture.arrayBuffer())).toEqual(new Uint8Array(await square.arrayBuffer()));
   });
 
   it("returns 404 for a profile without a picture", async () => {
-    const profile = await profileUsernameUpdate(api, await userAccessToken(), { username: "Jean Paul" });
+    const profile = await profileUsernameUpdate(api, await userAccessToken(authApi), { username: "Jean Paul" });
 
-    await expectStatus(profilePictureGet(api, await anonymousAccessToken(), { id: profile.id }), 404);
+    await expectStatus(profilePictureGet(api, await anonymousAccessToken(authApi), { id: profile.id }), 404);
   });
 
   it("returns 400 for a malformed ID", async () => {
-    await expectStatus(profilePictureGet(api, await anonymousAccessToken(), { id: "not-a-uuid" }), 400);
+    await expectStatus(profilePictureGet(api, await anonymousAccessToken(authApi), { id: "not-a-uuid" }), 400);
   });
 
   it("returns 422 for the nil ID", async () => {
     await expectStatus(
-      profilePictureGet(api, await anonymousAccessToken(), { id: "00000000-0000-0000-0000-000000000000" }),
+      profilePictureGet(api, await anonymousAccessToken(authApi), { id: "00000000-0000-0000-0000-000000000000" }),
       422
     );
   });
